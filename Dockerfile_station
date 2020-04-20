@@ -1,0 +1,7 @@
+FROM golang:latest
+
+WORKDIR /usr/
+
+ADD ./ /usr/
+
+CMD ["/usr/app/bin/archive"]
