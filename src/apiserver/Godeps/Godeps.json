@@ -1,0 +1,49 @@
+{
+	"ImportPath": "github.com/8245snake/bikeshare_api/src/apiserver",
+	"GoVersion": "go1.13",
+	"GodepVersion": "v80",
+	"Deps": [
+		{
+			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/filer",
+			"Rev": "d40614cc1d11a5f2d718b032f00ec369b942f2d7"
+		},
+		{
+			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/rdb",
+			"Rev": "d40614cc1d11a5f2d718b032f00ec369b942f2d7"
+		},
+		{
+			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/static",
+			"Rev": "d40614cc1d11a5f2d718b032f00ec369b942f2d7"
+		},
+		{
+			"ImportPath": "github.com/ant0ine/go-json-rest/rest",
+			"Comment": "v3.3.2-10-gebb3376",
+			"Rev": "ebb33769ae013bd5f518a8bac348c310dea768b8"
+		},
+		{
+			"ImportPath": "github.com/ant0ine/go-json-rest/rest/trie",
+			"Comment": "v3.3.2-10-gebb3376",
+			"Rev": "ebb33769ae013bd5f518a8bac348c310dea768b8"
+		},
+		{
+			"ImportPath": "github.com/lib/pq",
+			"Comment": "v1.3.0-4-g9eb3fc8",
+			"Rev": "9eb3fc897d6fd97dd4aad3d0404b54e2f7cc56be"
+		},
+		{
+			"ImportPath": "github.com/lib/pq/oid",
+			"Comment": "v1.3.0-4-g9eb3fc8",
+			"Rev": "9eb3fc897d6fd97dd4aad3d0404b54e2f7cc56be"
+		},
+		{
+			"ImportPath": "github.com/lib/pq/scram",
+			"Comment": "v1.3.0-4-g9eb3fc8",
+			"Rev": "9eb3fc897d6fd97dd4aad3d0404b54e2f7cc56be"
+		},
+		{
+			"ImportPath": "gopkg.in/ini.v1",
+			"Comment": "v1.51.1",
+			"Rev": "94291fffe2b14f4632ec0e67c1bfecfc1287a168"
+		}
+	]
+}
