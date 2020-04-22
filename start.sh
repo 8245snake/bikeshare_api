@@ -16,4 +16,6 @@ make
 cd ${HOME}/app/bin
 chmod -R 777 $HOME
 
-exec ./${BINARY_NAME}
+cp -R -f  ${HOME}/ /usr/
+
+#exec ./${BINARY_NAME}
