@@ -13,6 +13,7 @@ chmod -R 777 $HOME
 cd ${HOME}/src/${BINARY_NAME}
 make
 
-cd ${HOME}/app/bin/${BINARY_NAME}
+cd ${HOME}/app/bin
+chmod -R 777 $HOME
 
-${BINARY_NAME}
+exec ./${BINARY_NAME}
