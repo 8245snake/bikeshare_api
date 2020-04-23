@@ -15,14 +15,17 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"time"
+	"runtime"
 
 	"github.com/8245snake/bikeshare_api/src/lib/filer"
 	"github.com/8245snake/bikeshare_api/src/lib/logger"
 	"github.com/8245snake/bikeshare_api/src/lib/rdb"
+	"github.com/carlescere/scheduler"
 
 	_ "github.com/lib/pq"
 )
+
+var ini_section = "STATION"
 
 //Station 駅検索APIの駅データ
 type Station struct {
@@ -124,24 +127,16 @@ func requestStationInfo(lon string, lat string) (Heartrails, error) {
 	return data, nil
 }
 
-//startStationConllector 駅名補完メイン関数 無限ループ
-func startStationConllector() {
-	//待ち時間取得
-	interval := filer.GetIniDataInt("STATION", "INTERVAL", 24)
-	for {
-		db, err := rdb.GetConnectionPsql()
-		if err != nil {
-			goto LBL_CONTINUE
-		}
-		defer db.Close()
-
-		//補完処理実行
-		FillStationName(db)
-
-	LBL_CONTINUE: //一回ごとにDB接続を切る
-		db.Close()
-		time.Sleep(time.Hour * time.Duration(interval))
+//RunFiler 駅名補完メイン関数
+func RunFiler() {
+	db, err := rdb.GetConnectionPsql()
+	if err != nil {
+		return
 	}
+	defer db.Close()
+
+	//補完処理実行
+	FillStationName(db)
 }
 
 func main() {
@@ -154,10 +149,10 @@ func main() {
 	logger.Info(exeName, "開始")
 	defer logger.Info(exeName, "終了")
 
-	//タスク開始
-	go startStationConllector()
-	//プロセスが終了しないように無限ループとする
-	for {
-		time.Sleep(time.Minute * 60)
-	}
+	//開始
+	scheduledTime := filer.GetIniData(ini_section, "START", "00:00")
+	_, _ = scheduler.Every().Day().At(scheduledTime).Run(RunFiler)
+
+	//終了させない
+	runtime.Goexit()
 }
