@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/8245snake/bikeshare_api/src/lib/filer"
+	"github.com/8245snake/bikeshare_api/src/lib/logger"
 	"github.com/8245snake/bikeshare_api/src/lib/rdb"
 	"github.com/carlescere/scheduler"
 	_ "github.com/mattn/go-sqlite3"
@@ -146,6 +147,10 @@ func main() {
 		fmt.Printf("%v", err)
 		return
 	}
+	exeName := filer.GetExeName()
+	logger.Info(exeName, "開始")
+	defer logger.Info(exeName, "終了")
+
 	max_insert = filer.GetIniDataInt(ini_section, "MAXROWS", 5000)
 	delete_interval = filer.GetIniDataInt(ini_section, "INTERVAL", 30)
 	archive_time := filer.GetIniData(ini_section, "START", "00:00")

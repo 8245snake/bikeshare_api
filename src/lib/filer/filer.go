@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/8245snake/bikeshare_api/src/lib/logger"
 	"github.com/8245snake/bikeshare_api/src/lib/static"
 
 	"gopkg.in/ini.v1"
@@ -110,9 +111,16 @@ func InitDirSetting() error {
 		_ini = nil
 		return err
 	}
+
+	//ロガーを初期化
+	if err := logger.InitLogger(filepath.Join(static.DirLog, GetExeName()+".log")); err != nil {
+		return err
+	}
+
 	return nil
 }
 
+//ModTimeLayout 時刻フォーマットを分かりやすい形式から変換
 func ModTimeLayout(layout string) (newLayout string) {
 	newLayout = layout
 	newLayout = strings.Replace(newLayout, "yyyy", "2006", -1)
@@ -123,4 +131,15 @@ func ModTimeLayout(layout string) (newLayout string) {
 	newLayout = strings.Replace(newLayout, "MM", "04", -1)
 	newLayout = strings.Replace(newLayout, "SS", "05", -1)
 	return
+}
+
+//GetFileNameWithoutExt ファイルパスから拡張子を除いたファイル名を返す
+func GetFileNameWithoutExt(path string) string {
+	// Fixed with a nice method given by mattn-san
+	return filepath.Base(path[:len(path)-len(filepath.Ext(path))])
+}
+
+//GetExeName 実行ファイル名から拡張子を除いた文字列を返す
+func GetExeName() string {
+	return GetFileNameWithoutExt(os.Args[0])
 }

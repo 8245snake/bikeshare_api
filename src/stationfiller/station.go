@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/8245snake/bikeshare_api/src/lib/filer"
+	"github.com/8245snake/bikeshare_api/src/lib/logger"
 	"github.com/8245snake/bikeshare_api/src/lib/rdb"
 
 	_ "github.com/lib/pq"
@@ -149,6 +150,10 @@ func main() {
 	if err != nil {
 		return
 	}
+	exeName := filer.GetExeName()
+	logger.Info(exeName, "開始")
+	defer logger.Info(exeName, "終了")
+
 	//タスク開始
 	go startStationConllector()
 	//プロセスが終了しないように無限ループとする

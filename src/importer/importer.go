@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/8245snake/bikeshare_api/src/lib/filer"
+	"github.com/8245snake/bikeshare_api/src/lib/logger"
 	"github.com/8245snake/bikeshare_api/src/lib/rdb"
 )
 
@@ -91,6 +92,9 @@ func main() {
 	if err != nil {
 		return
 	}
+	exeName := filer.GetExeName()
+	logger.Info(exeName, "開始")
+	defer logger.Info(exeName, "終了")
 
 	//設定読み込み
 	section := "IMPORT"

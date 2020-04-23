@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/8245snake/bikeshare_api/src/lib/filer"
+	"github.com/8245snake/bikeshare_api/src/lib/logger"
 	"github.com/8245snake/bikeshare_api/src/lib/rdb"
 	"github.com/8245snake/bikeshare_api/src/lib/static"
 
@@ -242,6 +243,10 @@ func main() {
 	if err != nil {
 		return
 	}
+	exeName := filer.GetExeName()
+	logger.Info(exeName, "開始")
+	defer logger.Info(exeName, "終了")
+
 	api := rest.NewApi()
 	api.Use(rest.DefaultDevStack...)
 	api.Use(&rest.CorsMiddleware{
