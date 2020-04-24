@@ -34,6 +34,10 @@
 			"ImportPath": "gopkg.in/ini.v1",
 			"Comment": "v1.51.1",
 			"Rev": "94291fffe2b14f4632ec0e67c1bfecfc1287a168"
+		},
+		{
+			"ImportPath": "github.com/mbndr/logo",
+			"Rev": "06195deb9d538fc3057ce7cc6d61c4776996ebad"
 		}
 	]
 }
