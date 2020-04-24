@@ -1,19 +1,23 @@
 {
-	"ImportPath": "github.com/8245snake/bikeshare_api/src/importer",
+	"ImportPath": "github.com/8245snake/bikeshare_api - コピー/src/importer",
 	"GoVersion": "go1.13",
 	"GodepVersion": "v80",
 	"Deps": [
 		{
 			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/filer",
-			"Rev": "d40614cc1d11a5f2d718b032f00ec369b942f2d7"
+			"Rev": "218f589631fd5d1fe22cd0d643ce9a7d15e87d9f"
+		},
+		{
+			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/logger",
+			"Rev": "218f589631fd5d1fe22cd0d643ce9a7d15e87d9f"
 		},
 		{
 			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/rdb",
-			"Rev": "d40614cc1d11a5f2d718b032f00ec369b942f2d7"
+			"Rev": "218f589631fd5d1fe22cd0d643ce9a7d15e87d9f"
 		},
 		{
 			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/static",
-			"Rev": "d40614cc1d11a5f2d718b032f00ec369b942f2d7"
+			"Rev": "218f589631fd5d1fe22cd0d643ce9a7d15e87d9f"
 		},
 		{
 			"ImportPath": "github.com/lib/pq",
@@ -29,6 +33,10 @@
 			"ImportPath": "github.com/lib/pq/scram",
 			"Comment": "v1.3.0-4-g9eb3fc8",
 			"Rev": "9eb3fc897d6fd97dd4aad3d0404b54e2f7cc56be"
+		},
+		{
+			"ImportPath": "github.com/mbndr/logo",
+			"Rev": "06195deb9d538fc3057ce7cc6d61c4776996ebad"
 		},
 		{
 			"ImportPath": "gopkg.in/ini.v1",

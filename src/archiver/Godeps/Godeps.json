@@ -1,19 +1,23 @@
 {
-	"ImportPath": "github.com/8245snake/bikeshare_api/src/archiver",
+	"ImportPath": "github.com/8245snake/bikeshare_api - コピー/src/archiver",
 	"GoVersion": "go1.13",
 	"GodepVersion": "v80",
 	"Deps": [
 		{
 			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/filer",
-			"Rev": "d40614cc1d11a5f2d718b032f00ec369b942f2d7"
+			"Rev": "218f589631fd5d1fe22cd0d643ce9a7d15e87d9f"
+		},
+		{
+			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/logger",
+			"Rev": "218f589631fd5d1fe22cd0d643ce9a7d15e87d9f"
 		},
 		{
 			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/rdb",
-			"Rev": "d40614cc1d11a5f2d718b032f00ec369b942f2d7"
+			"Rev": "218f589631fd5d1fe22cd0d643ce9a7d15e87d9f"
 		},
 		{
 			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/static",
-			"Rev": "d40614cc1d11a5f2d718b032f00ec369b942f2d7"
+			"Rev": "218f589631fd5d1fe22cd0d643ce9a7d15e87d9f"
 		},
 		{
 			"ImportPath": "github.com/carlescere/scheduler",
@@ -41,13 +45,13 @@
 			"Rev": "d51eaf3b34716568abaa4572ba9b0d5dd8e29d97"
 		},
 		{
+			"ImportPath": "github.com/mbndr/logo",
+			"Rev": "06195deb9d538fc3057ce7cc6d61c4776996ebad"
+		},
+		{
 			"ImportPath": "gopkg.in/ini.v1",
 			"Comment": "v1.51.1",
 			"Rev": "94291fffe2b14f4632ec0e67c1bfecfc1287a168"
-		},
-		{
-			"ImportPath": "github.com/mbndr/logo",
-			"Rev": "06195deb9d538fc3057ce7cc6d61c4776996ebad"
 		}
 	]
 }
