@@ -1,0 +1,14 @@
+version: "3"
+services:
+  go-build:
+    image: go-build:latest
+    container_name: "go-build"
+    environment:
+      - TZ=Asia/Tokyo
+      - BINARY_NAMES=stationfiller,archiver,apiserver,importer
+    volumes:
+      - ./app/bin:/usr/bikeshare_api/app/bin
+      - ./data:/usr/bikeshare_api/data
+      - ./log:/usr/bikeshare_api/log
+    network_mode: "host"
+
