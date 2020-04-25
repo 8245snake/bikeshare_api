@@ -46,3 +46,4 @@ services:
 
 networks:
   pub-network:
+    external: true
