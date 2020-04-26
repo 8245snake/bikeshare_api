@@ -12,7 +12,10 @@ services:
       - ./data:/usr/bikeshare_api/data
       - ./log:/usr/bikeshare_api/log
       - ./conf:/usr/bikeshare_api/conf
-      
+    networks:
+      pub-network:
+        ipv4_address: 192.168.10.171
+
   stationfiller:
     image: go-build
     container_name: "stationfiller"
@@ -25,7 +28,10 @@ services:
       - ./data:/usr/bikeshare_api/data
       - ./log:/usr/bikeshare_api/log
       - ./conf:/usr/bikeshare_api/conf
-      
+    networks:
+      pub-network:
+        ipv4_address: 192.168.10.172
+
   apiserver:
     image: go-build
     container_name: "apiserver"
