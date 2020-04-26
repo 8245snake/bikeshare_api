@@ -30,10 +30,15 @@ const sql_key = "to_char(date(time),'YYYY-MM-DD')"
 //max_insert バルクインサートの最大件数
 var max_insert int
 
+//delete_interval Spotinfoから削除する間隔
 var delete_interval int
+
+//archive_time アーカイブ実行時刻
+var archive_time string
 
 //RunArchive postgresから検索してSQLiteに保存しpostgresから削除する
 func RunArchive() {
+	logger.Debugf("RunArchive_start")
 	db_psql, err := rdb.GetConnectionPsql()
 	if err != nil {
 		return
@@ -45,7 +50,6 @@ func RunArchive() {
 		" from public.analyze" +
 		" where date(time) <= date(CURRENT_TIMESTAMP - INTERVAL '2 DAY') group by date(time)"
 	rows, err := db_psql.Query(sql)
-
 	if err != nil {
 		return
 	}
@@ -53,20 +57,25 @@ func RunArchive() {
 	for rows.Next() {
 		var value string
 		_ = rows.Scan(&value)
+		logger.Debugf("RunArchive アーカイブ対象日=%s", value)
 		targetdate, err := time.Parse(filer.ModTimeLayout("yyyy-mm-dd"), value)
 		if err != nil {
 			continue
 		}
-		fmt.Printf("%s の処理中\n", value)
 		err = insert(db_psql, targetdate)
 		if err != nil {
+			logger.Debugf("RunArchive insert失敗 : %v", err)
 			continue
 		}
+		logger.Debugf("RunArchive insert成功")
 		err = delete(db_psql, targetdate)
 		if err != nil {
+			logger.Debugf("RunArchive delete失敗 : %v", err)
 			continue
 		}
+		logger.Debugf("RunArchive delete成功")
 	}
+	logger.Debugf("RunArchive_end")
 }
 
 //insert SQLiteに保存
@@ -97,7 +106,7 @@ func insert(db *sql.DB, targetdate time.Time) error {
 		if len(rows_sqlite) >= max_insert {
 			err = rdb.BulkInsertSpotinfo(sqlite, rows_sqlite)
 			if err != nil {
-				fmt.Printf("BulkInsertSpotinfoでエラー %v \n", err)
+				logger.Debugf("BulkInsertSpotinfoでエラー %v \n", err)
 			}
 			rows_sqlite = []rdb.Spotinfo{}
 		}
@@ -106,7 +115,7 @@ func insert(db *sql.DB, targetdate time.Time) error {
 	if len(rows_sqlite) > 0 {
 		err = rdb.BulkInsertSpotinfo(sqlite, rows_sqlite)
 		if err != nil {
-			fmt.Printf("BulkInsertSpotinfoでエラー %v \n", err)
+			logger.Debugf("BulkInsertSpotinfoでエラー %v \n", err)
 		}
 	}
 	return err
@@ -121,16 +130,18 @@ func delete(db *sql.DB, targetdate time.Time) error {
 
 //RunDeleteOld Spotinfoから古いデータを削除するメイン関数
 func RunDeleteOld() {
+	logger.Debugf("RunDeleteOld_start")
 	db_psql, err := rdb.GetConnectionPsql()
 	if err != nil {
-		fmt.Printf("RunDeleteOld %v \n", err)
+		logger.Debugf("RunDeleteOld GetConnectionPsqlでエラー : %v", err)
 	}
 	defer db_psql.Close()
 	//開始
 	err = deleteOldRecords(db_psql)
 	if err != nil {
-		fmt.Printf("RunDeleteOld %v \n", err)
+		logger.Debugf("RunDeleteOld deleteOldRecordsでエラー : %v", err)
 	}
+	logger.Debugf("RunDeleteOld_end")
 }
 
 //deleteOldRecords spotinfoから古いデータを削除
@@ -140,20 +151,30 @@ func deleteOldRecords(db *sql.DB) error {
 	return rdb.Delete(db, "spotinfo", option)
 }
 
+//loadConfig 設定を読み込む
+func loadConfig() {
+	max_insert = filer.GetIniDataInt(ini_section, "MAXROWS", 5000)
+	delete_interval = filer.GetIniDataInt(ini_section, "INTERVAL", 30)
+	archive_time = filer.GetIniData(ini_section, "START", "00:00")
+	logger.Info("設定を読み込みました")
+	logger.Infof("MAXROWS=%d", max_insert)
+	logger.Infof("INTERVAL=%d", delete_interval)
+	logger.Infof("START=%s", archive_time)
+}
+
 func main() {
 	//初期化
 	err := filer.InitDirSetting()
 	if err != nil {
-		fmt.Printf("%v", err)
+		fmt.Printf("InitDirSettingでエラー : %v", err)
 		return
 	}
 	exeName := filer.GetExeName()
 	logger.Info(exeName, "開始")
-	defer logger.Info(exeName, "終了")
 
-	max_insert = filer.GetIniDataInt(ini_section, "MAXROWS", 5000)
-	delete_interval = filer.GetIniDataInt(ini_section, "INTERVAL", 30)
-	archive_time := filer.GetIniData(ini_section, "START", "00:00")
+	//設定ロード
+	loadConfig()
+
 	//開始
 	_, _ = scheduler.Every().Day().At(archive_time).Run(RunArchive)
 	_, _ = scheduler.Every(delete_interval).Minutes().Run(RunDeleteOld)

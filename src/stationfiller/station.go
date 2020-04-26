@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"net/url"
 	"runtime"
+	"time"
 
 	"github.com/8245snake/bikeshare_api/src/lib/filer"
 	"github.com/8245snake/bikeshare_api/src/lib/logger"
@@ -56,43 +57,60 @@ type Response struct {
 }
 
 //GetDescriptions 説明を出力
-func (r Response) GetDescriptions() string {
-	var description string
+func (r Response) GetDescriptions() (description string, err error) {
 	for _, station := range r.Stations {
 		description += station.GetDescription()
 	}
-	return description
+	if description == "" {
+		return description, fmt.Errorf("descriptionの生成に失敗")
+	}
+	return
 }
 
 //GetStations 駅名をカンマ区切りで返す
-func (r Response) GetStations() (result string) {
-
+func (r Response) GetStations() (result string, err error) {
 	if len(r.Stations) > 0 {
 		result = r.Stations[0].Name
 	}
 	for i := 1; i < len(r.Stations)-1; i++ {
 		result += "," + r.Stations[i].Name
 	}
+	if result == "" {
+		return result, fmt.Errorf("stationの生成に失敗")
+	}
 	return
 }
 
 //FillStationName 駅名補完
 func FillStationName(db *sql.DB) {
-	opt := rdb.SearchOptions{AddWhere: "endtime is null and trim(description) is null "}
+	opt := rdb.SearchOptions{AddWhere: "endtime is null and (trim(description) = '' or description is null) "}
 	rows, err := rdb.SearchSpotmaster(db, opt)
 	if err != nil {
+		logger.Debugf("FillStationName SearchSpotmasterでエラー : %v", err)
 		return
 	}
+	logger.Infof("FillStationName %d件処理します", len(rows))
 	var station Heartrails
 	for _, row := range rows {
+		time.Sleep(1 * time.Second)
 		station, err = requestStationInfo(row.Lon, row.Lat)
 		if err != nil {
+			logger.Debugf("FillStationName requestStationInfoでエラー(area=%s, spot=%s) : %v", row.Area, row.Spot, err)
 			continue
 		}
-		row.Description = station.Response.GetDescriptions()
-		row.Station = station.Response.GetStations()
+		row.Description, err = station.Response.GetDescriptions()
+		if err != nil {
+			logger.Debugf("FillStationName GetDescriptionsでエラー(area=%s, spot=%s) : %v", row.Area, row.Spot, err)
+			continue
+		}
+		row.Station, err = station.Response.GetStations()
+		if err != nil {
+			logger.Debugf("FillStationName GetStationsでエラー(area=%s, spot=%s) : %v", row.Area, row.Spot, err)
+			continue
+		}
 		err = rdb.UpsertSpotmaster(db, row)
 		if err != nil {
+			logger.Debugf("FillStationName UpsertSpotmasterでエラー(area=%s, spot=%s) : %v", row.Area, row.Spot, err)
 			continue
 		}
 	}
@@ -129,29 +147,33 @@ func requestStationInfo(lon string, lat string) (Heartrails, error) {
 
 //RunFiler 駅名補完メイン関数
 func RunFiler() {
+	logger.Debugf("RunFiler_start")
 	db, err := rdb.GetConnectionPsql()
 	if err != nil {
+		logger.Debugf("GetConnectionPsqlでエラー : %v", err)
 		return
 	}
 	defer db.Close()
 
 	//補完処理実行
 	FillStationName(db)
+	logger.Debugf("RunFiler_end")
 }
 
 func main() {
 	//初期化
 	err := filer.InitDirSetting()
 	if err != nil {
+		fmt.Printf("InitDirSettingでエラー : %v", err)
 		return
 	}
 	exeName := filer.GetExeName()
 	logger.Info(exeName, "開始")
-	defer logger.Info(exeName, "終了")
 
 	//開始
 	scheduledTime := filer.GetIniData(ini_section, "START", "00:00")
 	_, _ = scheduler.Every().Day().At(scheduledTime).Run(RunFiler)
+	logger.Infof("%sに実行します", scheduledTime)
 
 	//終了させない
 	runtime.Goexit()
