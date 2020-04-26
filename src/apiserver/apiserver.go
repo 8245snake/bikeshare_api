@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/8245snake/bikeshare_api/src/lib/filer"
@@ -32,10 +33,14 @@ import (
 //DB接続オブジェクト
 var Db *sql.DB
 
-// var lock = sync.RWMutex{}
+//MasterSave 駐輪場情報構造体のキャッシュ
+var MasterSave []rdb.Spotmaster
 
 //JsonTimeLayout 時刻フォーマット
 const JsonTimeLayout = "2006/01/02 15:04"
+
+//ini_section セクション
+const ini_section = "API"
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  エンドポイント関数
@@ -96,14 +101,13 @@ func GetCounts(w rest.ResponseWriter, r *rest.Request) {
 	}
 	jBody.Counts = jCounts
 	//マスタ検索
-	option = rdb.SearchOptions{Area: area, Spot: spot, AddWhere: "endtime is null", Limit: 1}
-	if master, err := rdb.SearchSpotmaster(Db, option); err == nil && len(master) > 0 {
-		jBody.Area = master[0].Area
-		jBody.Spot = master[0].Spot
-		jBody.Description = master[0].Description
-		jBody.Lat = master[0].Lat
-		jBody.Lon = master[0].Lon
-		jBody.Name = master[0].Name
+	if master, err := GetSpotmasterFromCache(area, spot); err == nil {
+		jBody.Area = master.Area
+		jBody.Spot = master.Spot
+		jBody.Description = master.Description
+		jBody.Lat = master.Lat
+		jBody.Lon = master.Lon
+		jBody.Name = master.Name
 	} else {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteJson("マスターの検索に失敗しました")
@@ -123,17 +127,10 @@ func GetPlaces(w rest.ResponseWriter, r *rest.Request) {
 func GetAllPlaces(w rest.ResponseWriter, r *rest.Request) {
 	var jBody static.JAllPlacesBody
 	//マスタ全検索
-	option := rdb.SearchOptions{OrderBy: "area,spot", AddWhere: "endtime is null"}
-	masters, err := rdb.SearchSpotmaster(Db, option)
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteJson("マスターの検索に失敗しました")
-		return
-	}
-	jBody.Num = len(masters)
+	jBody.Num = len(MasterSave)
 
 	//型変換
-	for _, master := range masters {
+	for _, master := range MasterSave {
 		var chiled static.JAllSpotChiled
 		chiled.Area = master.Area
 		chiled.Spot = master.Spot
@@ -224,6 +221,52 @@ func SetSpotMaster(w rest.ResponseWriter, r *rest.Request) {
 	if !checkHeader(r) {
 		return
 	}
+	body := static.JSpotmaster{}
+	if err := r.DecodeJsonPayload(&body); err != nil {
+		rest.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	//body.Spotmaster をrdb.Spotmasterの配列にする
+	var rows []rdb.Spotmaster
+	for _, row := range body.Spotmaster {
+		rows = append(rows, rdb.Spotmaster{Area: strings.TrimSpace(row.Area),
+			Spot: strings.TrimSpace(row.Spot),
+			Name: strings.TrimSpace(row.Name),
+			Lat:  strings.TrimSpace(row.Lat),
+			Lon:  strings.TrimSpace(row.Lon)})
+	}
+
+	//更新があるかチェック
+	var updateList []rdb.Spotmaster
+	now := time.Now()
+	//ミリ秒はいらない
+	now = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), now.Second(), 0, time.Local)
+	for _, row := range rows {
+		olds, err := GetSpotmasterFromCache(row.Area, row.Spot)
+		if err != nil {
+			//見つからなかったら無条件で追加
+			row.Starttime = now
+			updateList = append(updateList, row)
+		} else {
+			//見つかったら名前を比較し変わっていたら更新
+			if row.Name != olds.Name {
+				row.Starttime = now
+				updateList = append(updateList, row)
+				//旧データは－1秒して更新
+				olds.Endtime = now.Add(-1 * time.Second)
+				updateList = append(updateList, olds)
+			}
+		}
+	}
+	//Upsert
+	for _, item := range updateList {
+		err := rdb.UpsertSpotmaster(Db, item)
+		if err != nil {
+			logger.Debugf("UpsertSpotmaster_Error %v \n", err)
+		}
+	}
+	//キャッシュ最新化
+	GetCacheSpotMaster()
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -235,6 +278,29 @@ func checkHeader(r *rest.Request) bool {
 	cert := r.Header.Get("cert")
 	apiCert := os.Getenv("API_CERT")
 	return (cert == apiCert)
+}
+
+//GetCacheSpotMaster Spotmasterをキャッシュする
+func GetCacheSpotMaster() {
+	//マスタ検索
+	option := rdb.SearchOptions{OrderBy: "area,spot", AddWhere: "endtime is null"}
+	if master, err := rdb.SearchSpotmaster(Db, option); err == nil {
+		MasterSave = master
+		logger.Infof("GetCacheSpotMaster マスタの取得に成功しました（%d件） \n", len(MasterSave))
+	} else {
+		MasterSave = []rdb.Spotmaster{}
+		logger.Infof("GetCacheSpotMaster マスタの取得に失敗しました。 \n")
+	}
+}
+
+//GetSpotmasterFromCache キャッシュしたデータからSpotmasterを探す
+func GetSpotmasterFromCache(area string, spot string) (rdb.Spotmaster, error) {
+	for _, s := range MasterSave {
+		if s.Area == area && s.Spot == spot {
+			return s, nil
+		}
+	}
+	return rdb.Spotmaster{}, fmt.Errorf("area=%s, spot=%s nothing", area, spot)
 }
 
 func main() {
@@ -273,12 +339,16 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	//DB接続
 	Db, err = rdb.GetConnectionPsql()
-	defer Db.Close()
-
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer Db.Close()
+	//起動時にキャッシュ
+	GetCacheSpotMaster()
+
+	//サーバ開始
 	api.SetApp(router)
 	log.Fatal(http.ListenAndServe(":5001", api.MakeHandler()))
 }

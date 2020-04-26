@@ -14,6 +14,17 @@ type JSpotinfo struct {
 	} `json:"spotinfo"`
 }
 
+//JSpotmaster スクレーパーから受け取ったJSONパース用
+type JSpotmaster struct {
+	Spotmaster []struct {
+		Area string `json:"area"`
+		Spot string `json:"spot"`
+		Name string `json:"name"`
+		Lat  string `json:"lat"`
+		Lon  string `json:"lon"`
+	} `json:"spotmaster"`
+}
+
 //JCount JSONマージャリング構造体 JCountsBodyの要素
 type JCount struct {
 	Count    string `json:"count"`

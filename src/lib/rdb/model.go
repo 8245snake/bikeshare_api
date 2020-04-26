@@ -223,9 +223,19 @@ func BulkInsertAnalyze(db *sql.DB, rows []Analyze) error {
 	return err
 }
 
-//SearchSpotmaster マスタ検索（制限事項：endtimeは取れない）
+//SearchSpotmaster マスタ検索
 func SearchSpotmaster(db *sql.DB, option SearchOptions) ([]Spotmaster, error) {
-	qry := "select trim(area),trim(spot),name,lat,lon,description,station,starttime from spotmaster "
+	qry := `select 
+	trim(area),
+	trim(spot),
+	trim(name),
+	lat,
+	lon,
+	COALESCE(description, ''),
+	COALESCE(station, ''),
+	starttime,
+	COALESCE(endtime, '0001/01/01') 
+	from spotmaster `
 	qry += option.GetSqlWhere()
 
 	rows, err := db.Query(qry)
@@ -238,7 +248,7 @@ func SearchSpotmaster(db *sql.DB, option SearchOptions) ([]Spotmaster, error) {
 	var es []Spotmaster
 	for rows.Next() {
 		var e Spotmaster
-		err := rows.Scan(&e.Area, &e.Spot, &e.Name, &e.Lat, &e.Lon, &e.Description, &e.Station, &e.Starttime)
+		err := rows.Scan(&e.Area, &e.Spot, &e.Name, &e.Lat, &e.Lon, &e.Description, &e.Station, &e.Starttime, &e.Endtime)
 		if err != nil {
 			continue
 		}
