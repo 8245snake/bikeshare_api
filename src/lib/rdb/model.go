@@ -3,6 +3,7 @@ package rdb
 import (
 	"database/sql"
 	"fmt"
+	"reflect"
 	"time"
 )
 
@@ -144,12 +145,26 @@ func SearchSpotinfo(db *sql.DB, option SearchOptions) []Spotinfo {
 		fmt.Println(err)
 	}
 
+	driverName := reflect.ValueOf(db.Driver()).Type().String()
 	var es []Spotinfo
 	for rows.Next() {
 		var e Spotinfo
-		err := rows.Scan(&e.Time, &e.Area, &e.Spot, &e.Count)
-		if err != nil {
-			continue
+		if driverName == "*sqlite3.SQLiteDriver" {
+			//SQLiteは日付型がないので特殊処理
+			var timestr string
+			err := rows.Scan(&timestr, &e.Area, &e.Spot, &e.Count)
+			if err != nil {
+				continue
+			}
+			e.Time, err = time.Parse(TimeLayout, timestr)
+			if err != nil {
+				continue
+			}
+		} else {
+			err := rows.Scan(&e.Time, &e.Area, &e.Spot, &e.Count)
+			if err != nil {
+				continue
+			}
 		}
 		es = append(es, e)
 	}

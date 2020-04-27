@@ -24,6 +24,7 @@ import (
 	"github.com/8245snake/bikeshare_api/src/lib/static"
 
 	"github.com/ant0ine/go-json-rest/rest"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -68,25 +69,14 @@ func GetCounts(w rest.ResponseWriter, r *rest.Request) {
 		w.WriteJson("台数検索の際にはareaとspotの両方を指定する必要があります")
 		return
 	}
-	//台数情報取得
-	option := rdb.SearchOptions{Area: area, Spot: spot, OrderBy: "time desc"}
-	if day != "" {
-		if dttm, err := time.Parse("20060102", day); err == nil {
-			option.AddWhere = fmt.Sprintf("date(time) = '%s'", dttm.Format("2006-01-02"))
-		} else {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteJson("dayの形式が不正です")
-			return
-		}
-	} else {
-		option.Limit = 1
-	}
-	rows, err := rdb.SearchAnalyze(Db, option)
+
+	rows, err := SearchCountsByDay(area, spot, day)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteJson("検索に失敗しました")
+		w.WriteJson(err.Error())
 		return
 	}
+
 	//JSON構造体に変換
 	for _, s := range rows {
 		datetime := s.Time.Format(JsonTimeLayout)
@@ -301,6 +291,47 @@ func GetSpotmasterFromCache(area string, spot string) (rdb.Spotmaster, error) {
 		}
 	}
 	return rdb.Spotmaster{}, fmt.Errorf("area=%s, spot=%s nothing", area, spot)
+}
+
+//SearchCountsByDay 指定日(yyyymmdd)のデータを検索する（psql, SQLite振り分け）
+func SearchCountsByDay(area, spot, day string) ([]rdb.Spotinfo, error) {
+	var spotinfos []rdb.Spotinfo
+	//検索条件作成
+	option := rdb.SearchOptions{Area: area, Spot: spot, OrderBy: "time desc"}
+	date, err := time.Parse("20060102", day)
+	if err != nil {
+		//ゼロ値で初期化
+		date = time.Time{}
+	}
+
+	today := time.Now()
+	//2日足して今日より未来ならpostgresにデータがある（dateはhhmmssがオール0のため）
+	if date.AddDate(0, 0, 2).After(today) || date.IsZero() {
+		if date.IsZero() {
+			//日付未指定なら最新の1件のみ
+			option.Limit = 1
+		} else {
+			option.AddWhere = fmt.Sprintf("date(time) = '%s'", date.Format("2006-01-02"))
+		}
+		analyzes, err := rdb.SearchAnalyze(Db, option)
+		if err != nil {
+			return spotinfos, err
+		}
+		//変換
+		for _, anal := range analyzes {
+			spotinfos = append(spotinfos, anal.ToSpotinfo())
+		}
+	} else {
+		db, err := rdb.GetConnectionSQLite(date)
+		if err != nil {
+			return spotinfos, err
+		}
+		defer db.Close()
+		//SQLiteから検索
+		spotinfos = rdb.SearchSpotinfo(db, option)
+	}
+
+	return spotinfos, err
 }
 
 func main() {
