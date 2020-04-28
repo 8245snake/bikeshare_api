@@ -331,7 +331,7 @@ func SearchCountsByDay(area, spot, day string) ([]rdb.Spotinfo, error) {
 		spotinfos = rdb.SearchSpotinfo(db, option)
 	}
 
-	return spotinfos, err
+	return spotinfos, nil
 }
 
 func main() {
