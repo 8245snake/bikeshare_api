@@ -6,7 +6,9 @@ services:
     environment:
       - TZ=Asia/Tokyo
       - BINARY_NAMES=stationfiller,archiver,apiserver,importer
+      - GOOS=linux
+      - GOARCH=arm
+      - GOARM=6
     volumes:
       - ./app/bin:/usr/bikeshare_api/app/bin
     network_mode: "host"
-
