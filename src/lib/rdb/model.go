@@ -172,7 +172,7 @@ func SearchSpotinfo(db *sql.DB, option SearchOptions) []Spotinfo {
 }
 
 //BulkInsertSpotinfo スポット情報をバルクインサートする
-func BulkInsertSpotinfo(db *sql.DB, rows []Spotinfo) error {
+func BulkInsertSpotinfo(db *sql.DB, rows []Spotinfo) (int64, error) {
 	qry := "insert into spotinfo (time,area,spot,count) values "
 	template := "('%s','%s','%s','%s')"
 	values := ""
@@ -184,8 +184,9 @@ func BulkInsertSpotinfo(db *sql.DB, rows []Spotinfo) error {
 		values += fmt.Sprintf(template, row.Time.Format(TimeLayout), row.Area, row.Spot, row.Count)
 	}
 	qry += values + " on conflict do nothing"
-	_, err := db.Exec(qry)
-	return err
+	result, err := db.Exec(qry)
+	RowsAffected, _ := result.RowsAffected()
+	return RowsAffected, err
 }
 
 //SearchAnalyzeSingle 1件だけ取得
@@ -315,9 +316,10 @@ func SearchConfig(db *sql.DB, option SearchOptions) ([]ConfigDB, error) {
 }
 
 //Delete 汎用的なレコード削除関数
-func Delete(db *sql.DB, table string, option SearchOptions) (err error) {
+func Delete(db *sql.DB, table string, option SearchOptions) (int64, error) {
 	qry := "delete from " + table
 	qry += option.GetSqlWhere()
-	_, err = db.Exec(qry)
-	return err
+	result, err := db.Exec(qry)
+	RowsAffected, _ := result.RowsAffected()
+	return RowsAffected, err
 }

@@ -94,6 +94,9 @@ func insert(db *sql.DB, targetdate time.Time) error {
 	}
 	defer sqlite.Close()
 	//SQLiteにInsert
+	var rowTried int64    //Insertしようとした件数
+	var rowAffected int64 //実際にInsertされた件数
+	var result int64      //一時変数
 	var rows_sqlite []rdb.Spotinfo
 	for rows.Next() {
 		var e rdb.Spotinfo
@@ -104,20 +107,28 @@ func insert(db *sql.DB, targetdate time.Time) error {
 		rows_sqlite = append(rows_sqlite, e)
 		//インサート
 		if len(rows_sqlite) >= max_insert {
-			err = rdb.BulkInsertSpotinfo(sqlite, rows_sqlite)
+			result, err = rdb.BulkInsertSpotinfo(sqlite, rows_sqlite)
 			if err != nil {
 				logger.Debugf("BulkInsertSpotinfoでエラー %v \n", err)
 			}
+			rowAffected += result
+			rowTried += int64(len(rows_sqlite))
 			rows_sqlite = []rdb.Spotinfo{}
 		}
 	}
 	//インサート
 	if len(rows_sqlite) > 0 {
-		err = rdb.BulkInsertSpotinfo(sqlite, rows_sqlite)
+		result, err = rdb.BulkInsertSpotinfo(sqlite, rows_sqlite)
 		if err != nil {
 			logger.Debugf("BulkInsertSpotinfoでエラー %v \n", err)
+		} else {
+			rowAffected += result
+			rowTried += int64(len(rows_sqlite))
 		}
 	}
+
+	logger.Debugf("%d件のInsertを試行しました", rowTried)
+	logger.Debugf("%d件Insertされました", rowAffected)
 	return err
 }
 
@@ -125,7 +136,9 @@ func insert(db *sql.DB, targetdate time.Time) error {
 func delete(db *sql.DB, targetdate time.Time) error {
 	addWhere := fmt.Sprintf(" %s = '%s'", sql_key, targetdate.Format(filer.ModTimeLayout("yyyy-mm-dd")))
 	option := rdb.SearchOptions{AddWhere: addWhere}
-	return rdb.Delete(db, "public.analyze", option)
+	RowsAffected, err := rdb.Delete(db, "public.analyze", option)
+	logger.Debugf("analyzeから%d件削除されました。", RowsAffected)
+	return err
 }
 
 //RunDeleteOld Spotinfoから古いデータを削除するメイン関数
@@ -148,7 +161,9 @@ func RunDeleteOld() {
 func deleteOldRecords(db *sql.DB) error {
 	sqlwhere := fmt.Sprintf("time < (CURRENT_TIMESTAMP - INTERVAL '%d MINUTE')", delete_interval)
 	option := rdb.SearchOptions{AddWhere: sqlwhere}
-	return rdb.Delete(db, "spotinfo", option)
+	RowsAffected, err := rdb.Delete(db, "spotinfo", option)
+	logger.Debugf("spotinfoから%d件削除されました。", RowsAffected)
+	return err
 }
 
 //loadConfig 設定を読み込む

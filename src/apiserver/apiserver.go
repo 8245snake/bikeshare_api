@@ -200,7 +200,7 @@ func SetSpotinfo(w rest.ResponseWriter, r *rest.Request) {
 		rows = append(rows, temp)
 	}
 
-	if err := rdb.BulkInsertSpotinfo(Db, rows); err != nil {
+	if _, err := rdb.BulkInsertSpotinfo(Db, rows); err != nil {
 		Db.Close()
 		Db, err = rdb.GetConnectionPsql()
 	}
