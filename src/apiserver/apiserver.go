@@ -276,10 +276,10 @@ func GetCacheSpotMaster() {
 	option := rdb.SearchOptions{OrderBy: "area,spot", AddWhere: "endtime is null"}
 	if master, err := rdb.SearchSpotmaster(Db, option); err == nil {
 		MasterSave = master
-		logger.Infof("GetCacheSpotMaster マスタの取得に成功しました（%d件） \n", len(MasterSave))
+		logger.Infof("GetCacheSpotMaster マスタの取得に成功しました(%d件)", len(MasterSave))
 	} else {
 		MasterSave = []rdb.Spotmaster{}
-		logger.Infof("GetCacheSpotMaster マスタの取得に失敗しました。 \n")
+		logger.Infof("GetCacheSpotMaster マスタの取得に失敗しました")
 	}
 }
 
