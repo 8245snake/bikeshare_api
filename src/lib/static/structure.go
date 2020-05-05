@@ -55,16 +55,37 @@ type JPlaces struct {
 	Lat         string `json:"lat"`
 	Lon         string `json:"lon"`
 	Name        string `json:"name"`
-	Recent      struct {
-		Count    string `json:"count"`
-		Datetime string `json:"datetime"`
-	} `json:"recent"`
+	Recent      Recent `json:"recent"`
 }
 
 //JPlacesBody JSONマージャリング構造体
 type JPlacesBody struct {
 	Num   int       `json:"num"`
 	Items []JPlaces `json:"items"`
+}
+
+//Recent 最新の台数情報を格納する
+type Recent struct {
+	Count    string `json:"count"`
+	Datetime string `json:"datetime"`
+}
+
+//JDistancesBody JSONマージャリング構造体
+type JDistancesBody struct {
+	Num   int          `json:"num"`
+	Items []JDistances `json:"items"`
+}
+
+//JDistances JSONマージャリング構造体
+type JDistances struct {
+	Area        string `json:"area"`
+	Spot        string `json:"spot"`
+	Description string `json:"description"`
+	Lat         string `json:"lat"`
+	Lon         string `json:"lon"`
+	Name        string `json:"name"`
+	Distance    string `json:"distance"`
+	Recent      Recent `json:"recent"`
 }
 
 //JAllPlacesBody JSONマージャリング構造体

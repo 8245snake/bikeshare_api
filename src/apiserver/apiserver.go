@@ -47,11 +47,6 @@ const ini_section = "API"
 //  エンドポイント関数
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//GetTest DB接続状態を返す
-func GetTest(w rest.ResponseWriter, r *rest.Request) {
-
-}
-
 //GetCounts 台数を返す公開API
 func GetCounts(w rest.ResponseWriter, r *rest.Request) {
 	//レスポンス用
@@ -110,7 +105,39 @@ func GetCounts(w rest.ResponseWriter, r *rest.Request) {
 
 //GetPlaces スポットマスタを返す公開API
 func GetPlaces(w rest.ResponseWriter, r *rest.Request) {
-
+	var jItems []static.JPlaces
+	var jBody static.JPlacesBody
+	//パース
+	r.ParseForm()
+	params := r.Form
+	area := params.Get("area")
+	spot := params.Get("spot")
+	query := params.Get("q")
+	addwhere := ""
+	if query != "" {
+		addwhere = fmt.Sprintf(" position( '%s' in trim(area) || '-' || trim(spot) || ',' || name || station ) > 0", query)
+	}
+	option := rdb.SearchOptions{Area: area, Spot: spot,
+		AddWhere: addwhere}
+	arr, err := rdb.SearchCurrentFull(Db, option)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteJson("マスターの検索に失敗しました")
+		return
+	}
+	//変換
+	for _, view := range arr {
+		recent := static.Recent{Count: view.Count, Datetime: view.Time.Format(JsonTimeLayout)}
+		json := static.JPlaces{Area: view.Area, Spot: view.Spot, Name: view.Name,
+			Lat: view.Lat, Lon: view.Lon, Description: view.Description,
+			Recent: recent}
+		jItems = append(jItems, json)
+	}
+	//返却
+	jBody.Num = len(jItems)
+	jBody.Items = jItems
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteJson(jBody)
 }
 
 //GetAllPlaces 全てのスポットマスタを返す公開API
@@ -134,7 +161,61 @@ func GetAllPlaces(w rest.ResponseWriter, r *rest.Request) {
 
 //GetDistances 距離を返す公開API
 func GetDistances(w rest.ResponseWriter, r *rest.Request) {
+	var jItems []static.JDistances
+	var jBody static.JDistancesBody
+	//パース
+	r.ParseForm()
+	params := r.Form
+	lat := params.Get("lat")
+	lon := params.Get("lon")
+	if lat == "" || lon == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteJson("latとlonの両方を指定する必要があります")
+		return
+	}
 
+	qry := `select 
+	trim(area) as area 
+	, trim(spot) as spot 
+	, trim(name) as name 
+	, trim(count) as count 
+	, time  
+	, lat 
+	, lon 
+	, description
+	, trunc(  
+	  sqrt(  
+		pow(TO_NUMBER(lat, '99.999999') - %s, 2) + pow(TO_NUMBER(lon, '999.999999') - %s, 2) 
+	  ) * 109133 
+	  , 0 
+	) as distance 
+    from current_full order by distance limit 10`
+	qry = fmt.Sprintf(qry, lat, lon)
+	rows, err := Db.Query(qry)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteJson("DBの検索に失敗しました")
+		return
+	}
+	for rows.Next() {
+		var area, spot, name, count, lat, lon, description string
+		var time time.Time
+		var distance int
+		err := rows.Scan(&area, &spot, &name, &count, &time,
+			&lat, &lon, &description, &distance)
+		if err != nil {
+			continue
+		}
+		recent := static.Recent{Count: count, Datetime: time.Format(JsonTimeLayout)}
+		distanceStr := fmt.Sprintf("%d m", distance)
+		jItems = append(jItems, static.JDistances{Area: area, Spot: spot, Name: name,
+			Lat: lat, Lon: lon, Description: description, Distance: distanceStr, Recent: recent})
+	}
+	//返却
+	jBody.Num = len(jItems)
+	jBody.Items = jItems
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteJson(jBody)
 }
 
 //GetConfig 設定を返す
@@ -358,7 +439,6 @@ func main() {
 		AccessControlMaxAge:           3600,
 	})
 	router, err := rest.MakeRouter(
-		rest.Get("/test", GetTest),
 		rest.Get("/counts", GetCounts),
 		rest.Get("/places", GetPlaces),
 		rest.Get("/all_places", GetAllPlaces),

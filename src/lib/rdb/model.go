@@ -315,6 +315,31 @@ func SearchConfig(db *sql.DB, option SearchOptions) ([]ConfigDB, error) {
 	return es, nil
 }
 
+//SearchCurrentFull ビュー検索
+func SearchCurrentFull(db *sql.DB, option SearchOptions) ([]CurrentFull, error) {
+	qry := `select 
+	trim(area),trim(spot),trim(name),
+	trim(count),time,lat,lon,description,station 
+	from current_full `
+	qry += option.GetSqlWhere()
+	rows, err := db.Query(qry)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+	var arr []CurrentFull
+	for rows.Next() {
+		var s CurrentFull
+		err := rows.Scan(&s.Area, &s.Spot, &s.Name, &s.Count, &s.Time,
+			&s.Lat, &s.Lon, &s.Description, &s.Station)
+		if err != nil {
+			continue
+		}
+		arr = append(arr, s)
+	}
+	return arr, nil
+}
+
 //Delete 汎用的なレコード削除関数
 func Delete(db *sql.DB, table string, option SearchOptions) (int64, error) {
 	qry := "delete from " + table
