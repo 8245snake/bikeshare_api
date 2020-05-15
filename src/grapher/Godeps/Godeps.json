@@ -1,0 +1,101 @@
+{
+	"ImportPath": "github.com/8245snake/bikeshare_api/src/grapher",
+	"GoVersion": "go1.13",
+	"GodepVersion": "v80",
+	"Deps": [
+		{
+			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/filer",
+			"Rev": "eb5e123858fd9f601181b081713d51014e5c4acf"
+		},
+		{
+			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/logger",
+			"Rev": "eb5e123858fd9f601181b081713d51014e5c4acf"
+		},
+		{
+			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/rdb",
+			"Rev": "eb5e123858fd9f601181b081713d51014e5c4acf"
+		},
+		{
+			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/static",
+			"Rev": "eb5e123858fd9f601181b081713d51014e5c4acf"
+		},
+		{
+			"ImportPath": "github.com/ant0ine/go-json-rest/rest",
+			"Comment": "v3.3.2-10-gebb3376",
+			"Rev": "ebb33769ae013bd5f518a8bac348c310dea768b8"
+		},
+		{
+			"ImportPath": "github.com/ant0ine/go-json-rest/rest/trie",
+			"Comment": "v3.3.2-10-gebb3376",
+			"Rev": "ebb33769ae013bd5f518a8bac348c310dea768b8"
+		},
+		{
+			"ImportPath": "github.com/fogleman/gg",
+			"Comment": "v1.3.0-7-g4dc3456",
+			"Rev": "4dc34561c649343936bb2d29e23959bd6d98ab12"
+		},
+		{
+			"ImportPath": "github.com/golang/freetype/raster",
+			"Comment": "release-137-ge2365df",
+			"Rev": "e2365dfdc4a05e4b8299a783240d4a7d5a65d4e4"
+		},
+		{
+			"ImportPath": "github.com/golang/freetype/truetype",
+			"Comment": "release-137-ge2365df",
+			"Rev": "e2365dfdc4a05e4b8299a783240d4a7d5a65d4e4"
+		},
+		{
+			"ImportPath": "github.com/lib/pq",
+			"Comment": "v1.3.0-4-g9eb3fc8",
+			"Rev": "9eb3fc897d6fd97dd4aad3d0404b54e2f7cc56be"
+		},
+		{
+			"ImportPath": "github.com/lib/pq/oid",
+			"Comment": "v1.3.0-4-g9eb3fc8",
+			"Rev": "9eb3fc897d6fd97dd4aad3d0404b54e2f7cc56be"
+		},
+		{
+			"ImportPath": "github.com/lib/pq/scram",
+			"Comment": "v1.3.0-4-g9eb3fc8",
+			"Rev": "9eb3fc897d6fd97dd4aad3d0404b54e2f7cc56be"
+		},
+		{
+			"ImportPath": "github.com/mattn/go-scan",
+			"Rev": "2250e6e52487d22639f95c878824bb979d1d392a"
+		},
+		{
+			"ImportPath": "github.com/mattn/go-sqlite3",
+			"Comment": "v2.0.2-1-gd51eaf3",
+			"Rev": "d51eaf3b34716568abaa4572ba9b0d5dd8e29d97"
+		},
+		{
+			"ImportPath": "github.com/mbndr/logo",
+			"Rev": "06195deb9d538fc3057ce7cc6d61c4776996ebad"
+		},
+		{
+			"ImportPath": "golang.org/x/image/draw",
+			"Rev": "33d19683fad8d833d2299173c7bf8ced0f102764"
+		},
+		{
+			"ImportPath": "golang.org/x/image/font",
+			"Rev": "33d19683fad8d833d2299173c7bf8ced0f102764"
+		},
+		{
+			"ImportPath": "golang.org/x/image/font/basicfont",
+			"Rev": "33d19683fad8d833d2299173c7bf8ced0f102764"
+		},
+		{
+			"ImportPath": "golang.org/x/image/math/f64",
+			"Rev": "33d19683fad8d833d2299173c7bf8ced0f102764"
+		},
+		{
+			"ImportPath": "golang.org/x/image/math/fixed",
+			"Rev": "33d19683fad8d833d2299173c7bf8ced0f102764"
+		},
+		{
+			"ImportPath": "gopkg.in/ini.v1",
+			"Comment": "v1.51.1",
+			"Rev": "94291fffe2b14f4632ec0e67c1bfecfc1287a168"
+		}
+	]
+}
