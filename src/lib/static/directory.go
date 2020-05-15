@@ -18,3 +18,6 @@ const DirLog = "../../log"
 
 //DirData SQLite保存先ディレクトリ
 const DirData = "../../data"
+
+//DirImage グラフ画像作成一時フォルダ
+const DirImage = "../../data/img"
