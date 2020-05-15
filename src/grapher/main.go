@@ -79,6 +79,9 @@ func GetGraph(w rest.ResponseWriter, r *rest.Request) {
 	for _, day := range daysArr {
 		graph.SetData(area, spot, day)
 	}
+	if title := params.Get("title"); title == "yes" {
+		graph.SetTitle(area, spot)
+	}
 	filepath := graph.Draw()
 	if filepath == ErrorImageName {
 		w.Header().Set("Content-Type", "text/plain")

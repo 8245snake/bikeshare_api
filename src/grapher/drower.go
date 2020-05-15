@@ -26,6 +26,7 @@ const ErrorImageName = "error.png"
 //Graph グラフ本体
 type Graph struct {
 	DC                                               *gg.Context
+	Title                                            string
 	Width, Height                                    float64
 	MarginLeft, MarginTop, MarginRight, MarginBottom float64
 	Plots                                            []Plot
@@ -162,6 +163,16 @@ func createPoints(area, spot, day string) (points []Point, err error) {
 	return points, nil
 }
 
+//SetTitle グラフタイトルをセットする
+func (g *Graph) SetTitle(area, spot string) {
+	master, err := rdb.SearchSpotmaster(Db, rdb.SearchOptions{Area: area, Spot: spot})
+	if err != nil || len(master) < 1 {
+		return
+	}
+	name := master[0].Name
+	g.Title = fmt.Sprintf("[%s-%s] %s", area, spot, name)
+}
+
 //Draw グラフ描画 ファイル名を返す
 func (g *Graph) Draw() string {
 	start := time.Now()
@@ -241,6 +252,7 @@ func (g *Graph) Draw() string {
 	}
 
 	//点と線を描画
+	cutoff := 60.0 * xTick //60分以上間隔が空いたら線を引かない
 	for i, plot := range g.Plots {
 		//プロット
 		var xSave, ySave float64
@@ -248,7 +260,7 @@ func (g *Graph) Draw() string {
 		for _, point := range plot.Points {
 			x, y := point.GetCoordinate(xTick, yTick, g.MarginLeft, g.MarginTop+plotHeight)
 			g.DC.DrawCircle(x, y, 2)
-			if xSave != 0 {
+			if xSave != 0 && math.Abs(xSave-x) < cutoff {
 				g.DC.DrawLine(x, y, xSave, ySave)
 			}
 			xSave = x
@@ -266,6 +278,11 @@ func (g *Graph) Draw() string {
 		g.DC.SetRGB(0, 0, 0)
 		g.DrawText(plot.LegendCaption, legendLeft+legendLength+5, legendTop, 0)
 		g.DC.Stroke()
+	}
+	//タイトル
+	if g.Title != "" {
+		g.DC.SetFontFace(getFontFace(18))
+		g.DC.DrawStringWrapped(g.Title, g.MarginLeft, g.MarginTop-50, 0, 0, plotWidth, 1, gg.AlignLeft)
 	}
 
 	//保存
