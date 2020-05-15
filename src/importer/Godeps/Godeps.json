@@ -5,19 +5,19 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/filer",
-			"Rev": "f28dd08fda70716818bae24bd09a566e9be9ebba"
+			"Rev": "143e44475c6d06a4b598bb8ad05087f39ee473da"
 		},
 		{
 			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/logger",
-			"Rev": "f28dd08fda70716818bae24bd09a566e9be9ebba"
+			"Rev": "143e44475c6d06a4b598bb8ad05087f39ee473da"
 		},
 		{
 			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/rdb",
-			"Rev": "f28dd08fda70716818bae24bd09a566e9be9ebba"
+			"Rev": "143e44475c6d06a4b598bb8ad05087f39ee473da"
 		},
 		{
 			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/static",
-			"Rev": "f28dd08fda70716818bae24bd09a566e9be9ebba"
+			"Rev": "143e44475c6d06a4b598bb8ad05087f39ee473da"
 		},
 		{
 			"ImportPath": "github.com/lib/pq",
