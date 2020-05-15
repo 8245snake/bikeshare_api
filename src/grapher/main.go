@@ -10,6 +10,7 @@ import (
 
 	"github.com/8245snake/bikeshare_api/src/lib/filer"
 	"github.com/8245snake/bikeshare_api/src/lib/logger"
+	"github.com/8245snake/bikeshare_api/src/lib/rdb"
 	"github.com/ant0ine/go-json-rest/rest"
 )
 
@@ -102,6 +103,10 @@ func init() {
 	ImgurID = getConfig("imgur_id")
 	if ImgurID == "" {
 		panic("imgur_idが設定されていません")
+	}
+	Db, err = rdb.GetConnectionPsql()
+	if err != nil {
+		panic(err)
 	}
 }
 

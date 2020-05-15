@@ -68,17 +68,17 @@ func (s Spotinfo) TimeString() string {
 }
 
 //ToAnalyze Spotinfo→Analyzeの変換
-func (data Spotinfo) ToAnalyze() Analyze {
-	return Analyze{Area: data.Area, Spot: data.Spot, Time: data.Time, Count: data.Count}
+func (s Spotinfo) ToAnalyze() Analyze {
+	return Analyze{Area: s.Area, Spot: s.Spot, Time: s.Time, Count: s.Count}
 }
 
 func (s Analyze) String() string {
 	return fmt.Sprintf("%s-%s %s %s台", s.Area, s.Spot, s.Time.Format(TimeLayout), s.Count)
 }
 
-//ToAnalyze Analyze→Spotinfoの変換
-func (data Analyze) ToSpotinfo() Spotinfo {
-	return Spotinfo{Area: data.Area, Spot: data.Spot, Time: data.Time, Count: data.Count}
+//ToSpotinfo Analyze→Spotinfoの変換
+func (s Analyze) ToSpotinfo() Spotinfo {
+	return Spotinfo{Area: s.Area, Spot: s.Spot, Time: s.Time, Count: s.Count}
 }
 
 //ToCsvStr CSV用文字列生成
@@ -220,6 +220,49 @@ func SearchAnalyze(db *sql.DB, option SearchOptions) ([]Analyze, error) {
 		es = append(es, e)
 	}
 	return es, nil
+}
+
+//SearchCountsByDay 指定日(yyyymmdd)のデータを検索する（psql, SQLite振り分け）
+func SearchCountsByDay(psql *sql.DB, area, spot, day string) ([]Spotinfo, error) {
+	var spotinfos []Spotinfo
+	//検索条件作成
+	option := SearchOptions{Area: area, Spot: spot, OrderBy: "time desc"}
+	date, err := time.Parse("20060102", day)
+	if err != nil {
+		//ゼロ値で初期化
+		date = time.Time{}
+	}
+
+	today := time.Now()
+	//どちらのDBを見るか
+	if date.Year() == today.Year() && today.YearDay()-date.YearDay() <= 1 {
+		//今日か昨日ならPostgres
+		if date.IsZero() {
+			//日付未指定なら最新の1件のみ
+			option.Limit = 1
+		} else {
+			option.AddWhere = fmt.Sprintf("date(time) = '%s'", date.Format("2006-01-02"))
+		}
+		analyzes, err := SearchAnalyze(psql, option)
+		if err != nil {
+			return spotinfos, err
+		}
+		//変換
+		for _, anal := range analyzes {
+			spotinfos = append(spotinfos, anal.ToSpotinfo())
+		}
+	} else {
+		//昨日より過去ならSQLite
+		db, err := GetConnectionSQLite(date)
+		if err != nil {
+			return spotinfos, err
+		}
+		defer db.Close()
+		//SQLiteから検索
+		spotinfos = SearchSpotinfo(db, option)
+	}
+
+	return spotinfos, nil
 }
 
 //BulkInsertAnalyze スポット情報をバルクインサートする

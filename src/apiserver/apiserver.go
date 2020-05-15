@@ -31,7 +31,7 @@ import (
 //  変数
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//DB接続オブジェクト
+//Db DB接続オブジェクト
 var Db *sql.DB
 
 //MasterSave 駐輪場情報構造体のキャッシュ
@@ -65,7 +65,7 @@ func GetCounts(w rest.ResponseWriter, r *rest.Request) {
 		return
 	}
 
-	rows, err := SearchCountsByDay(area, spot, day)
+	rows, err := rdb.SearchCountsByDay(Db, area, spot, day)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteJson(err.Error())
@@ -372,47 +372,6 @@ func GetSpotmasterFromCache(area string, spot string) (rdb.Spotmaster, error) {
 		}
 	}
 	return rdb.Spotmaster{}, fmt.Errorf("area=%s, spot=%s nothing", area, spot)
-}
-
-//SearchCountsByDay 指定日(yyyymmdd)のデータを検索する（psql, SQLite振り分け）
-func SearchCountsByDay(area, spot, day string) ([]rdb.Spotinfo, error) {
-	var spotinfos []rdb.Spotinfo
-	//検索条件作成
-	option := rdb.SearchOptions{Area: area, Spot: spot, OrderBy: "time desc"}
-	date, err := time.Parse("20060102", day)
-	if err != nil {
-		//ゼロ値で初期化
-		date = time.Time{}
-	}
-
-	today := time.Now()
-	//2日足して今日より未来ならpostgresにデータがある（dateはhhmmssがオール0のため）
-	if date.AddDate(0, 0, 2).After(today) || date.IsZero() {
-		if date.IsZero() {
-			//日付未指定なら最新の1件のみ
-			option.Limit = 1
-		} else {
-			option.AddWhere = fmt.Sprintf("date(time) = '%s'", date.Format("2006-01-02"))
-		}
-		analyzes, err := rdb.SearchAnalyze(Db, option)
-		if err != nil {
-			return spotinfos, err
-		}
-		//変換
-		for _, anal := range analyzes {
-			spotinfos = append(spotinfos, anal.ToSpotinfo())
-		}
-	} else {
-		db, err := rdb.GetConnectionSQLite(date)
-		if err != nil {
-			return spotinfos, err
-		}
-		defer db.Close()
-		//SQLiteから検索
-		spotinfos = rdb.SearchSpotinfo(db, option)
-	}
-
-	return spotinfos, nil
 }
 
 func main() {

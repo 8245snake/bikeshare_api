@@ -1,23 +1,24 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"math"
 	"path/filepath"
 	"strconv"
 	"time"
 
-	bikeshareapi "github.com/8245snake/bikeshare-client"
 	"github.com/8245snake/bikeshare_api/src/lib/rdb"
 	"github.com/8245snake/bikeshare_api/src/lib/static"
 	"github.com/fogleman/gg"
 	"github.com/golang/freetype/truetype"
+	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
 )
 
-//api APIクライアント
-var api = bikeshareapi.NewApiClient()
+//Db データベースコネクション
+var Db *sql.DB
 
 //ErrorImageName エラー画像
 const ErrorImageName = "error.png"
@@ -130,14 +131,7 @@ func (g *Graph) SetData(area, spot, day string) {
 		return
 	}
 	var points []Point
-	today := time.Now()
-	if today.YearDay()-1 > t.YearDay() && today.Year() == t.Year() {
-		//昨日より過去ならAPI使用
-		points, err = createPointsFromAPI(area, spot, day)
-	} else {
-		//今日と昨日ならpostgresを見る
-		points, err = createPointsFromPostgres(area, spot, day)
-	}
+	points, err = createPoints(area, spot, day)
 
 	var plot Plot
 	plot.Points = points
@@ -152,39 +146,14 @@ func (g *Graph) SetData(area, spot, day string) {
 
 }
 
-//createPointsFromAPI APIから取得する場合はこっちを使う
-func createPointsFromAPI(area, spot, day string) (points []Point, err error) {
-	spotinfo, err := api.GetCounts(bikeshareapi.SearchCountsOption{Area: area, Spot: spot, Day: day})
+//createPoints 指定日(yyyymmdd)のデータを検索しPoint構造体配列を作成する
+func createPoints(area, spot, day string) (points []Point, err error) {
+
+	spotinfos, err := rdb.SearchCountsByDay(Db, area, spot, day)
 	if err != nil {
 		return points, err
 	}
-	for _, bikecount := range spotinfo.Counts {
-		points = append(points, NewPoint(bikecount.Time, float64(bikecount.Count)))
-	}
-	return points, nil
-}
-
-//createPointsFromPostgres 指定日(yyyymmdd)のデータを検索する
-func createPointsFromPostgres(area, spot, day string) (points []Point, err error) {
-	//DB接続
-	db, err := rdb.GetConnectionPsql()
-	if err != nil {
-		panic(err)
-	}
-	defer db.Close()
-
-	//チェック不要（呼び出し元でチェック済み）
-	date, _ := time.Parse("20060102", day)
-	option := rdb.SearchOptions{Area: area,
-		Spot:     spot,
-		OrderBy:  "time desc",
-		AddWhere: fmt.Sprintf("date(time) = '%s'", date.Format("2006-01-02")),
-	}
-	analyzes, err := rdb.SearchAnalyze(db, option)
-	if err != nil {
-		return points, err
-	}
-	for _, bikecount := range analyzes {
+	for _, bikecount := range spotinfos {
 		if val, err := strconv.ParseFloat(bikecount.Count, 64); err == nil {
 			points = append(points, NewPoint(bikecount.Time, val))
 		}
