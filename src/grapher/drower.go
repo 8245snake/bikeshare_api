@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"path/filepath"
 	"strconv"
@@ -14,7 +15,6 @@ import (
 	"github.com/golang/freetype/truetype"
 	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/image/font"
-	"golang.org/x/image/font/gofont/goregular"
 )
 
 //Db データベースコネクション
@@ -83,7 +83,8 @@ func (p Point) String() string {
 }
 
 func getFontFace(size float64) font.Face {
-	font, err := truetype.Parse(goregular.TTF)
+	ftBinary, err := ioutil.ReadFile("../../resource/font/Koruri-Semibold.ttf")
+	font, err := truetype.Parse(ftBinary)
 	if err != nil {
 		panic(err)
 	}
