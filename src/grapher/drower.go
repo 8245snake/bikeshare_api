@@ -182,8 +182,8 @@ func (g *Graph) Draw() string {
 	if len(g.Plots) < 1 {
 		return ErrorImageName
 	}
-	filePath := fmt.Sprintf("%s_%s.png", g.Plots[0], start.Format("20060102150405"))
-	filePath = filepath.Join(static.DirImage, filePath)
+	//ファイル名を決定
+	fileName := fmt.Sprintf("%s_%s.png", start.Format("20060102150405"), g.Plots[0])
 	//軸ラベル作成（x軸：時刻）
 	var xAxisLabels []AxisLabel
 	for i := 0; i <= 24; i++ {
@@ -289,13 +289,13 @@ func (g *Graph) Draw() string {
 	}
 
 	//保存
-	err := g.DC.SavePNG(filePath)
+	err := g.DC.SavePNG(filepath.Join(static.DirImage, fileName))
 	if err != nil {
-		filePath = ErrorImageName
+		fileName = ErrorImageName
 	}
 	end := time.Now()
 	fmt.Printf("%f秒\n", (end.Sub(start)).Seconds())
-	return filePath
+	return fileName
 }
 
 //changeColor 描画色を変える

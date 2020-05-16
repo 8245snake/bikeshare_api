@@ -1,9 +1,11 @@
 package main
 
 import (
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -83,24 +85,55 @@ func GetGraph(w rest.ResponseWriter, r *rest.Request) {
 	if title := params.Get("title"); title == "yes" {
 		graph.SetTitle(area, spot)
 	}
-	filepath := graph.Draw()
-	if filepath == ErrorImageName {
+	fileName := graph.Draw()
+	if fileName == ErrorImageName {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteJson(ErrorImageURL)
 		return
 	}
-	link := UploadImgur(filepath)
-	os.Remove(filepath)
 
+	//URLを取得
+	var link string
+	if title := params.Get("imgur"); title == "yes" {
+		//imgurにアップロードする
+		path := filepath.Join(static.DirImage, fileName)
+		link = UploadImgur(path)
+		os.Remove(path)
+	} else {
+		//ローカルのファイルを見せる
+		link = "https://hanetwi.ddns.net/bikeshare/graph/img/" + fileName
+	}
+
+	//URLを返却
 	resp := static.JGraphResponse{Title: graph.Title,
 		Width:  strconv.Itoa(int(graph.Width)),
 		Height: strconv.Itoa(int(graph.Height)),
 		URL:    link}
-
-	//URLを返却
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteJson(resp)
 	return
+}
+
+//handleFile ファイルを返す
+func handleFile(w http.ResponseWriter, r *http.Request) {
+	fileName := strings.Replace(r.URL.Path, "/graph/img/", "", -1)
+	body, err := ioutil.ReadFile(filepath.Join(static.DirImage, fileName))
+	if err != nil {
+		body, err = serveErrorImage()
+		if err != nil {
+			return
+		}
+	}
+	w.Write(body)
+}
+
+//serveErrorImage エラー画像表示（エラーの種類によって出し分けたい）
+func serveErrorImage() ([]byte, error) {
+	body, err := ioutil.ReadFile(filepath.Join(static.DirImage, "ERROR_NOT_CREATED.png"))
+	if err != nil {
+		return nil, err
+	}
+	return body, nil
 }
 
 func init() {
@@ -143,8 +176,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	//サーバ開始
 	api.SetApp(router)
-	log.Fatal(http.ListenAndServe(":5010", api.MakeHandler()))
+
+	//ハンドラ追加
+	http.Handle("/", api.MakeHandler())
+	http.Handle("/graph/img/", http.HandlerFunc(handleFile))
+	//サーバ開始
+	log.Fatal(http.ListenAndServe(":5010", nil))
 }
