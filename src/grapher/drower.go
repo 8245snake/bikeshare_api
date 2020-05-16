@@ -23,6 +23,9 @@ var Db *sql.DB
 //ErrorImageName エラー画像
 const ErrorImageName = "error.png"
 
+//WeekDays 曜日
+var WeekDays = [7]string{"日", "月", "火", "水", "木", "金", "土"}
+
 //Graph グラフ本体
 type Graph struct {
 	DC                                               *gg.Context
@@ -143,7 +146,7 @@ func (g *Graph) SetData(area, spot, day string) {
 	plot.Month = int(t.Month())
 	plot.Day = t.Day()
 	plot.ColorIndex = len(g.Plots)
-	plot.LegendCaption = t.Format("2006/01/02")
+	plot.LegendCaption = fmt.Sprintf("%s (%s)", t.Format("2006/01/02"), WeekDays[t.Weekday()])
 	g.Plots = append(g.Plots, plot)
 
 }
@@ -268,7 +271,7 @@ func (g *Graph) Draw() string {
 		}
 
 		//凡例
-		space := 100.0
+		space := 120.0
 		legendTop := g.MarginTop - 10
 		legendLeft := 10 + g.MarginLeft + float64(i)*space
 		legendLength := 20.0

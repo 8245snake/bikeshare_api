@@ -11,6 +11,7 @@ import (
 	"github.com/8245snake/bikeshare_api/src/lib/filer"
 	"github.com/8245snake/bikeshare_api/src/lib/logger"
 	"github.com/8245snake/bikeshare_api/src/lib/rdb"
+	"github.com/8245snake/bikeshare_api/src/lib/static"
 	"github.com/ant0ine/go-json-rest/rest"
 )
 
@@ -32,7 +33,7 @@ func GetGraph(w rest.ResponseWriter, r *rest.Request) {
 	area := params.Get("area")
 	spot := params.Get("spot")
 	if area == "" || spot == "" {
-		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteJson("パラメータが不正です")
 		return
 	}
@@ -84,16 +85,21 @@ func GetGraph(w rest.ResponseWriter, r *rest.Request) {
 	}
 	filepath := graph.Draw()
 	if filepath == ErrorImageName {
-		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteJson(ErrorImageURL)
 		return
 	}
 	link := UploadImgur(filepath)
 	os.Remove(filepath)
 
+	resp := static.JGraphResponse{Title: graph.Title,
+		Width:  strconv.Itoa(int(graph.Width)),
+		Height: strconv.Itoa(int(graph.Height)),
+		URL:    link}
+
 	//URLを返却
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteJson(link)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteJson(resp)
 	return
 }
 

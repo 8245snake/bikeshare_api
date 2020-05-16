@@ -116,3 +116,11 @@ type JConfig struct {
 	TwitterConsumerKey       string `json:"twitter_consumer_key"`
 	TwitterConsumerKeySecret string `json:"twitter_consumer_key_secret"`
 }
+
+//JGraphResponse Graphリクエストの返信用
+type JGraphResponse struct {
+	Title  string `json:"title"`
+	Width  string `json:"width"`
+	Height string `json:"height"`
+	URL    string `json:"url"`
+}
