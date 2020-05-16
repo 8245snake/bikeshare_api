@@ -177,13 +177,10 @@ func (g *Graph) SetTitle(area, spot string) {
 }
 
 //Draw グラフ描画 ファイル名を返す
-func (g *Graph) Draw() string {
-	start := time.Now()
+func (g *Graph) Draw(fileName string) {
 	if len(g.Plots) < 1 {
-		return ErrorImageName
+		return
 	}
-	//ファイル名を決定
-	fileName := fmt.Sprintf("%s_%s.png", start.Format("20060102150405"), g.Plots[0])
 	//軸ラベル作成（x軸：時刻）
 	var xAxisLabels []AxisLabel
 	for i := 0; i <= 24; i++ {
@@ -293,9 +290,6 @@ func (g *Graph) Draw() string {
 	if err != nil {
 		fileName = ErrorImageName
 	}
-	end := time.Now()
-	fmt.Printf("%f秒\n", (end.Sub(start)).Seconds())
-	return fileName
 }
 
 //changeColor 描画色を変える

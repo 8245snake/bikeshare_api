@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/8245snake/bikeshare_api/src/lib/logger"
 	"github.com/8245snake/bikeshare_api/src/lib/static"
@@ -142,4 +143,20 @@ func GetFileNameWithoutExt(path string) string {
 //GetExeName 実行ファイル名から拡張子を除いた文字列を返す
 func GetExeName() string {
 	return GetFileNameWithoutExt(os.Args[0])
+}
+
+//WaitForFileCreation ファイルができるまで待つ
+//監視間隔とタイムアウトを秒で指定
+//見つかったらtrueを返す
+func WaitForFileCreation(path string, watchInterval float32, timeout float32) (exists bool) {
+	exists = false
+	tryNum := int(timeout/watchInterval) + 1
+	for i := 0; i < tryNum; i++ {
+		if CheckFileExist(path) {
+			exists = true
+			break
+		}
+		time.Sleep(time.Duration(watchInterval) * time.Second)
+	}
+	return
 }

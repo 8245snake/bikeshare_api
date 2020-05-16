@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -19,41 +21,52 @@ import (
 
 //デフォルト値
 const (
-	defWidth        float64 = 600.0
-	defHeight       float64 = 400.0
-	defMarginLeft   float64 = 50.0
-	defMarginRight  float64 = 50.0
-	defMarginTop    float64 = 50.0
-	defMarginBottom float64 = 50.0
+	defWidth            float64 = 600.0
+	defHeight           float64 = 400.0
+	defMarginLeft       float64 = 50.0
+	defMarginRight      float64 = 50.0
+	defMarginTop        float64 = 50.0
+	defMarginBottom     float64 = 50.0
+	FileNameTimeFormat          = "20060102150405"
+	NotCreatedImageName         = "ERROR_NOT_CREATED.png"
 )
 
-//GetGraph グラフ作成
-func GetGraph(w rest.ResponseWriter, r *rest.Request) {
-	//パース
-	r.ParseForm()
-	params := r.Form
-	area := params.Get("area")
-	spot := params.Get("spot")
-	if area == "" || spot == "" {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteJson("パラメータが不正です")
-		return
+//GraphConfig グラフリクエスト情報
+type GraphConfig struct {
+	Area         string
+	Spot         string
+	Days         []string
+	Width        float64
+	Height       float64
+	MarginLeft   float64
+	MarginTop    float64
+	MarginRight  float64
+	MarginBottom float64
+	DrawTitle    bool
+	UploadImgur  bool
+}
+
+//LoadGraphConfig リクエストを解析し設定を取得する
+func LoadGraphConfig(params *url.Values) (conf GraphConfig, err error) {
+	conf.Area = params.Get("area")
+	conf.Spot = params.Get("spot")
+	if conf.Area == "" || conf.Spot == "" {
+		return conf, fmt.Errorf("パラメータが不正です")
 	}
 	days := params.Get("days")
-	var daysArr []string
 	//デフォルトは今日と昨日のみ
 	if days == "" {
-		daysArr = []string{time.Now().Format("20060102"), (time.Now().AddDate(0, 0, -1)).Format("20060102")}
+		conf.Days = []string{time.Now().Format("20060102"), (time.Now().AddDate(0, 0, -1)).Format("20060102")}
 	} else {
-		daysArr = strings.Split(days, ",")
+		conf.Days = strings.Split(days, ",")
 	}
 	// 画像プロパティ設定
-	width := defWidth
-	height := defHeight
-	mleft := defMarginLeft
-	mtop := defMarginTop
-	mright := defMarginRight
-	mbottom := defMarginBottom
+	conf.Width = defWidth
+	conf.Height = defHeight
+	conf.MarginLeft = defMarginLeft
+	conf.MarginTop = defMarginTop
+	conf.MarginRight = defMarginRight
+	conf.MarginBottom = defMarginBottom
 	if property := params.Get("property"); property != "" {
 		arr := strings.Split(property, ",")
 		for i, num := range arr {
@@ -63,51 +76,91 @@ func GetGraph(w rest.ResponseWriter, r *rest.Request) {
 			}
 			switch i {
 			case 0:
-				width = val
+				conf.Width = val
 			case 1:
-				height = val
+				conf.Height = val
 			case 2:
-				mleft = val
+				conf.MarginLeft = val
 			case 3:
-				mright = val
+				conf.MarginRight = val
 			case 4:
-				mtop = val
+				conf.MarginTop = val
 			case 5:
-				mbottom = val
+				conf.MarginBottom = val
 			}
 		}
 	}
-	//グラフ画像作成
-	graph := NewGraph(width, height, mleft, mright, mtop, mbottom)
-	for _, day := range daysArr {
-		graph.SetData(area, spot, day)
-	}
+	//フラグ設定
 	if title := params.Get("title"); title == "yes" {
-		graph.SetTitle(area, spot)
+		conf.DrawTitle = true
 	}
-	fileName := graph.Draw()
-	if fileName == ErrorImageName {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteJson(ErrorImageURL)
-		return
+
+	if imgur := params.Get("imgur"); imgur == "yes" {
+		conf.UploadImgur = true
 	}
+
+	return
+}
+
+//createImgName ファイル名を決定する
+func createImgName(area, spot string) string {
+	return fmt.Sprintf("%s_%s-%s.png", time.Now().Format(FileNameTimeFormat), area, spot)
+}
+
+//createTitle グラフタイトルをセットする
+func createTitle(area, spot string) string {
+	master, err := rdb.SearchSpotmaster(Db, rdb.SearchOptions{Area: area, Spot: spot})
+	if err != nil || len(master) < 1 {
+		return ""
+	}
+	name := master[0].Name
+	return fmt.Sprintf("[%s-%s] %s", area, spot, name)
+}
+
+//drawGraphImage グラフ作成
+func drawGraphImage(conf *GraphConfig, fileName string, title string) {
+	graph := NewGraph(conf.Width, conf.Height, conf.MarginLeft, conf.MarginRight, conf.MarginTop, conf.MarginBottom)
+	for _, day := range conf.Days {
+		graph.SetData(conf.Area, conf.Spot, day)
+	}
+	if conf.DrawTitle {
+		graph.Title = title
+	}
+	graph.Draw(fileName)
+}
+
+//GetGraph グラフ作成
+func GetGraph(w rest.ResponseWriter, r *rest.Request) {
+	//パース
+	r.ParseForm()
+	param := r.Form
+	conf, err := LoadGraphConfig(&param)
+	if err != nil {
+		w.WriteJson(err.Error())
+	}
+
+	//先にファイル名やタイトルを決定しておく
+	fileName := createImgName(conf.Area, conf.Spot)
+	title := createTitle(conf.Area, conf.Spot)
 
 	//URLを取得
 	var link string
-	if title := params.Get("imgur"); title == "yes" {
-		//imgurにアップロードする
+	if conf.UploadImgur {
+		//imgurにアップロードする（同期）
+		drawGraphImage(&conf, fileName, title)
 		path := filepath.Join(static.DirImage, fileName)
 		link = UploadImgur(path)
 		os.Remove(path)
 	} else {
-		//ローカルのファイルを見せる
+		//ローカルのファイルを見せる（非同期）
+		go drawGraphImage(&conf, fileName, title)
 		link = "https://hanetwi.ddns.net/bikeshare/graph/img/" + fileName
 	}
 
 	//URLを返却
-	resp := static.JGraphResponse{Title: graph.Title,
-		Width:  strconv.Itoa(int(graph.Width)),
-		Height: strconv.Itoa(int(graph.Height)),
+	resp := static.JGraphResponse{Title: title,
+		Width:  strconv.Itoa(int(conf.Width)),
+		Height: strconv.Itoa(int(conf.Height)),
 		URL:    link}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteJson(resp)
@@ -119,7 +172,7 @@ func handleFile(w http.ResponseWriter, r *http.Request) {
 	fileName := strings.Replace(r.URL.Path, "/graph/img/", "", -1)
 	body, err := ioutil.ReadFile(filepath.Join(static.DirImage, fileName))
 	if err != nil {
-		body, err = serveErrorImage()
+		body, err = serveErrorImage(err.Error(), fileName)
 		if err != nil {
 			return
 		}
@@ -127,9 +180,43 @@ func handleFile(w http.ResponseWriter, r *http.Request) {
 	w.Write(body)
 }
 
-//serveErrorImage エラー画像表示（エラーの種類によって出し分けたい）
-func serveErrorImage() ([]byte, error) {
-	body, err := ioutil.ReadFile(filepath.Join(static.DirImage, "ERROR_NOT_CREATED.png"))
+//serveErrorImage エラー時の画像表示
+//エラーの種類によって画像を出し分ける他、画像が作成される前にアクセスされた場合はできるまで待つ
+func serveErrorImage(errString string, fileName string) ([]byte, error) {
+	//返却用
+	var returnFileName string
+	switch 1 {
+	// breakするためswitch構文に入れる
+	default:
+		if strings.Index(errString, "The system cannot find") > 0 {
+			//ファイルが存在しないエラー
+			datetime, err := time.Parse(FileNameTimeFormat, fileName[:len(FileNameTimeFormat)])
+			if err != nil {
+				//ファイル名が不正のため諦める
+				returnFileName = NotCreatedImageName
+				break
+			}
+			var during int = 100
+			if now, err := strconv.Atoi(time.Now().Format(FileNameTimeFormat)); err == nil {
+				if target, err := strconv.Atoi(datetime.Format(FileNameTimeFormat)); err == nil {
+					during = now - target
+				}
+			}
+			if during < 5 {
+				// ５秒以内のリクエストなら様子見
+				if filer.WaitForFileCreation(filepath.Join(static.DirImage, fileName), 1, 5) {
+					returnFileName = fileName
+				} else {
+					returnFileName = NotCreatedImageName
+				}
+			} else {
+				returnFileName = NotCreatedImageName
+			}
+		}
+	}
+
+	//返却
+	body, err := ioutil.ReadFile(filepath.Join(static.DirImage, returnFileName))
 	if err != nil {
 		return nil, err
 	}
