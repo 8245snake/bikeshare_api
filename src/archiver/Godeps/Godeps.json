@@ -5,19 +5,19 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/filer",
-			"Rev": "143e44475c6d06a4b598bb8ad05087f39ee473da"
+			"Rev": "d03a7374d365eedccc15d2e31a2690daeac6ae63"
 		},
 		{
 			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/logger",
-			"Rev": "143e44475c6d06a4b598bb8ad05087f39ee473da"
+			"Rev": "d03a7374d365eedccc15d2e31a2690daeac6ae63"
 		},
 		{
 			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/rdb",
-			"Rev": "143e44475c6d06a4b598bb8ad05087f39ee473da"
+			"Rev": "d03a7374d365eedccc15d2e31a2690daeac6ae63"
 		},
 		{
 			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/static",
-			"Rev": "143e44475c6d06a4b598bb8ad05087f39ee473da"
+			"Rev": "d03a7374d365eedccc15d2e31a2690daeac6ae63"
 		},
 		{
 			"ImportPath": "github.com/carlescere/scheduler",
