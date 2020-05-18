@@ -21,12 +21,13 @@ import (
 
 //デフォルト値
 const (
-	defWidth            float64 = 600.0
-	defHeight           float64 = 400.0
+	defWidth            float64 = 400.0
+	defHeight           float64 = 300.0
 	defMarginLeft       float64 = 50.0
 	defMarginRight      float64 = 50.0
 	defMarginTop        float64 = 50.0
 	defMarginBottom     float64 = 50.0
+	defDaySpan          int     = 2
 	FileNameTimeFormat          = "20060102150405"
 	NotCreatedImageName         = "ERROR_NOT_CREATED.png"
 )
@@ -36,6 +37,7 @@ type GraphConfig struct {
 	Area         string
 	Spot         string
 	Days         []string
+	Span         int //基準日から何日遡るか
 	Width        float64
 	Height       float64
 	MarginLeft   float64
@@ -53,12 +55,23 @@ func LoadGraphConfig(params *url.Values) (conf GraphConfig, err error) {
 	if conf.Area == "" || conf.Spot == "" {
 		return conf, fmt.Errorf("パラメータが不正です")
 	}
-	days := params.Get("days")
-	//デフォルトは今日と昨日のみ
-	if days == "" {
-		conf.Days = []string{time.Now().Format("20060102"), (time.Now().AddDate(0, 0, -1)).Format("20060102")}
+	//日数
+	if span, err := strconv.Atoi(params.Get("span")); err == nil {
+		conf.Span = span
 	} else {
+		conf.Span = defDaySpan
+	}
+
+	days := params.Get("days")
+	// 優先順位：daysがあればdaysのみで決定（spanは無視）
+	// daysが空ならdays = 今日 としてspan日分遡って描画
+	if days != "" {
 		conf.Days = strings.Split(days, ",")
+	} else {
+		today := time.Now()
+		for i := 0; i < conf.Span; i++ {
+			conf.Days = append(conf.Days, today.AddDate(0, 0, -i).Format("20060102"))
+		}
 	}
 	// 画像プロパティ設定
 	conf.Width = defWidth
@@ -82,9 +95,9 @@ func LoadGraphConfig(params *url.Values) (conf GraphConfig, err error) {
 			case 2:
 				conf.MarginLeft = val
 			case 3:
-				conf.MarginRight = val
-			case 4:
 				conf.MarginTop = val
+			case 4:
+				conf.MarginRight = val
 			case 5:
 				conf.MarginBottom = val
 			}
