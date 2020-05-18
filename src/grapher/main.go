@@ -30,6 +30,7 @@ const (
 	defDaySpan          int     = 2
 	FileNameTimeFormat          = "20060102150405"
 	NotCreatedImageName         = "ERROR_NOT_CREATED.png"
+	JsonTimeLayout              = "2006/01/02 15:04"
 )
 
 //GraphConfig グラフリクエスト情報
@@ -121,12 +122,7 @@ func createImgName(area, spot string) string {
 }
 
 //createTitle グラフタイトルをセットする
-func createTitle(area, spot string) string {
-	master, err := rdb.SearchSpotmaster(Db, rdb.SearchOptions{Area: area, Spot: spot})
-	if err != nil || len(master) < 1 {
-		return ""
-	}
-	name := master[0].Name
+func createTitle(area, spot, name string) string {
 	return fmt.Sprintf("[%s-%s] %s", area, spot, name)
 }
 
@@ -150,11 +146,19 @@ func GetGraph(w rest.ResponseWriter, r *rest.Request) {
 	conf, err := LoadGraphConfig(&param)
 	if err != nil {
 		w.WriteJson(err.Error())
+		return
 	}
 
 	//先にファイル名やタイトルを決定しておく
+	var spotFullData rdb.CurrentFull
+	if fulldata, err := rdb.SearchCurrentFull(Db, rdb.SearchOptions{Area: conf.Area, Spot: conf.Spot}); err != nil || len(fulldata) < 1 {
+		w.WriteJson(err.Error())
+		return
+	} else {
+		spotFullData = fulldata[0]
+	}
 	fileName := createImgName(conf.Area, conf.Spot)
-	title := createTitle(conf.Area, conf.Spot)
+	title := createTitle(conf.Area, conf.Spot, spotFullData.Name)
 
 	//URLを取得
 	var link string
@@ -174,7 +178,20 @@ func GetGraph(w rest.ResponseWriter, r *rest.Request) {
 	resp := static.JGraphResponse{Title: title,
 		Width:  strconv.Itoa(int(conf.Width)),
 		Height: strconv.Itoa(int(conf.Height)),
-		URL:    link}
+		URL:    link,
+		Item: static.JPlaces{
+			Area:        spotFullData.Area,
+			Spot:        spotFullData.Spot,
+			Name:        spotFullData.Name,
+			Description: spotFullData.Description,
+			Lat:         spotFullData.Lat,
+			Lon:         spotFullData.Lon,
+			Recent: static.Recent{
+				Datetime: spotFullData.Time.Format(JsonTimeLayout),
+				Count:    spotFullData.Count,
+			},
+		},
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteJson(resp)
 	return

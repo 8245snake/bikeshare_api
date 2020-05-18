@@ -119,8 +119,9 @@ type JConfig struct {
 
 //JGraphResponse Graphリクエストの返信用
 type JGraphResponse struct {
-	Title  string `json:"title"`
-	Width  string `json:"width"`
-	Height string `json:"height"`
-	URL    string `json:"url"`
+	Title  string  `json:"title"`
+	Width  string  `json:"width"`
+	Height string  `json:"height"`
+	URL    string  `json:"url"`
+	Item   JPlaces `json:"item"`
 }
