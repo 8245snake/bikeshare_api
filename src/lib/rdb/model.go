@@ -7,6 +7,25 @@ import (
 	"time"
 )
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  定数
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//ItemKeyLine 項目キー（LINE）
+type ItemKeyLine string
+
+const (
+	//LineHistory 履歴
+	LineHistory = "History"
+	//LineNotify 通知時刻
+	LineNotify = "Notify"
+	//LineFavorite お気に入りスポット
+	LineFavorite = "Favorite"
+)
+
+//ItemKeySlack 項目キー（Slack）
+type ItemKeySlack string
+
 //TimeLayout 時刻フォーマット
 const TimeLayout = "2006/01/02 15:04:05"
 
@@ -52,6 +71,32 @@ type CurrentFull struct {
 //ConfigDB 設定
 type ConfigDB struct {
 	Key, Value, HostID string
+}
+
+//ConfigLINE LINEの設定
+type ConfigLINE struct {
+	ID, Key, Value string
+	Seq            int
+}
+
+//ConfigSlack Slackの設定
+type ConfigSlack struct {
+	ID, Key, Value string
+	Seq            int
+}
+
+//ServiceConfig 設定
+type ServiceConfig interface {
+	ServiceConfig()
+}
+
+//User ユーザ
+type User struct {
+	LineID    string   `json:"line_id"`
+	SlackID   string   `json:"slack_id"`
+	Favorites []string `json:"favorites"`
+	Notifies  []string `json:"notifies"`
+	Histories []string `json:"histories"`
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -121,6 +166,12 @@ func (option SearchOptions) GetSqlWhere() string {
 	return qry
 }
 
+//ServiceConfig インターフェース用
+func (conf ConfigLINE) ServiceConfig() {}
+
+//ServiceConfig インターフェース用
+func (conf ConfigSlack) ServiceConfig() {}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  関数
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -140,10 +191,10 @@ func SearchSpotinfo(db *sql.DB, option SearchOptions) []Spotinfo {
 	qry += option.GetSqlWhere()
 
 	rows, err := db.Query(qry)
-
 	if err != nil {
 		fmt.Println(err)
 	}
+	defer rows.Close()
 
 	driverName := reflect.ValueOf(db.Driver()).Type().String()
 	var es []Spotinfo
@@ -204,11 +255,11 @@ func SearchAnalyze(db *sql.DB, option SearchOptions) ([]Analyze, error) {
 	qry += option.GetSqlWhere()
 
 	rows, err := db.Query(qry)
-
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
 	}
+	defer rows.Close()
 
 	var es []Analyze
 	for rows.Next() {
@@ -298,11 +349,11 @@ func SearchSpotmaster(db *sql.DB, option SearchOptions) ([]Spotmaster, error) {
 	qry += option.GetSqlWhere()
 
 	rows, err := db.Query(qry)
-
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
 	}
+	defer rows.Close()
 
 	var es []Spotmaster
 	for rows.Next() {
@@ -340,11 +391,11 @@ func SearchConfig(db *sql.DB, option SearchOptions) ([]ConfigDB, error) {
 	qry += option.GetSqlWhere()
 
 	rows, err := db.Query(qry)
-
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
 	}
+	defer rows.Close()
 
 	var es []ConfigDB
 	for rows.Next() {
@@ -370,6 +421,8 @@ func SearchCurrentFull(db *sql.DB, option SearchOptions) ([]CurrentFull, error) 
 		fmt.Println(err)
 		return nil, err
 	}
+	defer rows.Close()
+
 	var arr []CurrentFull
 	for rows.Next() {
 		var s CurrentFull
@@ -390,4 +443,68 @@ func Delete(db *sql.DB, table string, option SearchOptions) (int64, error) {
 	result, err := db.Exec(qry)
 	RowsAffected, _ := result.RowsAffected()
 	return RowsAffected, err
+}
+
+//GetAllUsers ユーザー設定をすべて取得
+func GetAllUsers(db *sql.DB) ([]User, error) {
+	var users []User
+	qry := `select line_id,slack_id from public.user`
+	rows, err := db.Query(qry)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var s User
+		err := rows.Scan(&s.LineID, &s.SlackID)
+		if err != nil {
+			continue
+		}
+		users = append(users, s)
+	}
+
+	var rtnUsers []User
+	for _, user := range users {
+		qry = `select key,value,seq from line where id = $1 order by id,key,seq`
+		stmt, err := db.Prepare(qry)
+		if err != nil {
+			fmt.Println(err)
+			return nil, err
+		}
+		defer stmt.Close()
+
+		rows, err = stmt.Query(user.LineID)
+		if err != nil {
+			fmt.Println(err)
+			return nil, err
+		}
+		var key string
+		var val string
+		var seq int
+		var Favorites []string
+		var Histories []string
+		var Notifies []string
+		for rows.Next() {
+			err := rows.Scan(&key, &val, &seq)
+			if err != nil {
+				continue
+			}
+			switch ItemKeyLine(key) {
+			case LineFavorite:
+				Favorites = append(Favorites, val)
+			case LineHistory:
+				Histories = append(Favorites, val)
+			case LineNotify:
+				Notifies = append(Favorites, val)
+			}
+		}
+		user.Favorites = Favorites
+		user.Histories = Histories
+		user.Notifies = Notifies
+		rtnUsers = append(rtnUsers, user)
+	}
+
+	return rtnUsers, nil
 }

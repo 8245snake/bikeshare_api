@@ -4,7 +4,7 @@ package main
 //  概要：REST APIのサーバ
 //
 //　機能：1. スクレーパーからPOSTされた台数情報をDBに書き込む
-//　　　　2. 公開APIを提供する
+//　　　　2. WEB APIを提供する
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -15,7 +15,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/8245snake/bikeshare_api/src/lib/filer"
@@ -218,128 +217,6 @@ func GetDistances(w rest.ResponseWriter, r *rest.Request) {
 	w.WriteJson(jBody)
 }
 
-//GetConfig 設定を返す
-func GetConfig(w rest.ResponseWriter, r *rest.Request) {
-	if !checkHeader(r) {
-		return
-	}
-	//レスポンス用
-	var jBody static.JConfig
-
-	//パース
-	r.ParseForm()
-	params := r.Form
-	hostid := params.Get("hostid")
-	//検索
-	option := rdb.SearchOptions{AddWhere: "trim(hostid) in ('', '" + hostid + "')", OrderBy: "hostid"}
-	configs, err := rdb.SearchConfig(Db, option)
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteJson("設定の検索に失敗しました")
-		return
-	}
-	for _, config := range configs {
-		if config.Key == "imgur_id" {
-			jBody.ImgurID = config.Value
-		} else if config.Key == "twitter_access_token" {
-			jBody.TwitterAccessToken = config.Value
-		} else if config.Key == "twitter_access_token_secret" {
-			jBody.TwitterAccessTokenSecret = config.Value
-		} else if config.Key == "twitter_consumer_key" {
-			jBody.TwitterConsumerKey = config.Value
-		} else if config.Key == "twitter_consumer_key_secret" {
-			jBody.TwitterConsumerKeySecret = config.Value
-		} else if config.Key == "client_id" {
-			jBody.ClientID = config.Value
-		} else if config.Key == "client_secret" {
-			jBody.ClientSecret = config.Value
-		} else if config.Key == "channel_secret" {
-			jBody.ChannelSecret = config.Value
-		}
-	}
-	//返却
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteJson(jBody)
-}
-
-//SetSpotinfo スクレイパーからのPOSTに対応
-func SetSpotinfo(w rest.ResponseWriter, r *rest.Request) {
-	if !checkHeader(r) {
-		return
-	}
-	body := static.JSpotinfo{}
-	if err := r.DecodeJsonPayload(&body); err != nil {
-		rest.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	//body.Spotinfo をconn.Spotinfoの配列にする
-	var rows []rdb.Spotinfo
-	for _, row := range body.Spotinfo {
-		time, _ := time.Parse(rdb.TimeLayout, row.Time)
-		temp := rdb.Spotinfo{Area: row.Area, Spot: row.Spot, Time: time, Count: row.Count}
-		rows = append(rows, temp)
-	}
-
-	if _, err := rdb.BulkInsertSpotinfo(Db, rows); err != nil {
-		Db.Close()
-		Db, err = rdb.GetConnectionPsql()
-	}
-}
-
-//SetSpotMaster スクレイパーからのPOSTに対応
-func SetSpotMaster(w rest.ResponseWriter, r *rest.Request) {
-	if !checkHeader(r) {
-		return
-	}
-	body := static.JSpotmaster{}
-	if err := r.DecodeJsonPayload(&body); err != nil {
-		rest.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	//body.Spotmaster をrdb.Spotmasterの配列にする
-	var rows []rdb.Spotmaster
-	for _, row := range body.Spotmaster {
-		rows = append(rows, rdb.Spotmaster{Area: strings.TrimSpace(row.Area),
-			Spot: strings.TrimSpace(row.Spot),
-			Name: strings.TrimSpace(row.Name),
-			Lat:  strings.TrimSpace(row.Lat),
-			Lon:  strings.TrimSpace(row.Lon)})
-	}
-
-	//更新があるかチェック
-	var updateList []rdb.Spotmaster
-	now := time.Now()
-	//ミリ秒はいらない
-	now = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), now.Second(), 0, time.Local)
-	for _, row := range rows {
-		olds, err := GetSpotmasterFromCache(row.Area, row.Spot)
-		if err != nil {
-			//見つからなかったら無条件で追加
-			row.Starttime = now
-			updateList = append(updateList, row)
-		} else {
-			//見つかったら名前を比較し変わっていたら更新
-			if row.Name != olds.Name {
-				row.Starttime = now
-				updateList = append(updateList, row)
-				//旧データは－1秒して更新
-				olds.Endtime = now.Add(-1 * time.Second)
-				updateList = append(updateList, olds)
-			}
-		}
-	}
-	//Upsert
-	for _, item := range updateList {
-		err := rdb.UpsertSpotmaster(Db, item)
-		if err != nil {
-			logger.Debugf("UpsertSpotmaster_Error %v \n", err)
-		}
-	}
-	//キャッシュ最新化
-	GetCacheSpotMaster()
-}
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  その他関数
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -374,16 +251,23 @@ func GetSpotmasterFromCache(area string, spot string) (rdb.Spotmaster, error) {
 	return rdb.Spotmaster{}, fmt.Errorf("area=%s, spot=%s nothing", area, spot)
 }
 
-func main() {
+func init() {
 	//初期化
 	err := filer.InitDirSetting()
 	if err != nil {
 		return
 	}
-	exeName := filer.GetExeName()
-	logger.Info(exeName, "開始")
-	defer logger.Info(exeName, "終了")
+	logger.Info(filer.GetExeName(), "開始")
+	//DB接続
+	Db, err = rdb.GetConnectionPsql()
+	if err != nil {
+		log.Fatal(err)
+	}
+	//起動時にキャッシュ
+	GetCacheSpotMaster()
+}
 
+func main() {
 	api := rest.NewApi()
 	api.Use(rest.DefaultDevStack...)
 	api.Use(&rest.CorsMiddleware{
@@ -403,20 +287,14 @@ func main() {
 		rest.Get("/all_places", GetAllPlaces),
 		rest.Get("/distances", GetDistances),
 		rest.Get("/private/config", GetConfig),
+		rest.Get("/private/users", GetUser),
 		rest.Post("/private/counts", SetSpotinfo),
 		rest.Post("/private/places", SetSpotMaster),
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
-	//DB接続
-	Db, err = rdb.GetConnectionPsql()
-	if err != nil {
-		log.Fatal(err)
-	}
 	defer Db.Close()
-	//起動時にキャッシュ
-	GetCacheSpotMaster()
 
 	//サーバ開始
 	api.SetApp(router)
