@@ -88,7 +88,7 @@ func insert(db *sql.DB, targetdate time.Time) error {
 		return err
 	}
 	//SQLiteに接続
-	sqlite, err := rdb.GetConnectionSQLite(targetdate)
+	sqlite, err := rdb.GetConnectionSQLite(targetdate, true)
 	if err != nil {
 		return err
 	}

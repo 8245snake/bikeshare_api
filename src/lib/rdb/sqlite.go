@@ -2,6 +2,7 @@ package rdb
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -39,14 +40,19 @@ func CreateSQLite(path string) (*sql.DB, error) {
 }
 
 //GetConnectionSQLite 日付を指定してSQLiteのコネクションを取得
-func GetConnectionSQLite(t time.Time) (db *sql.DB, err error) {
+//SQLiteファイルがない場合の挙動createIfNothing = True(DBを作る)
+func GetConnectionSQLite(t time.Time, createIfNothing bool) (db *sql.DB, err error) {
 	filename := t.Format(filer.ModTimeLayout("yyyy-mm-dd")) + ".db"
 	path := filepath.Join(static.DirData, filename)
 
 	if filer.CheckFileExist(path) {
 		db, err = sql.Open("sqlite3", path)
 	} else {
-		db, err = CreateSQLite(path)
+		if createIfNothing {
+			db, err = CreateSQLite(path)
+		} else {
+			err = fmt.Errorf("GetConnectionSQLite %s がありませんでした。", filename)
+		}
 	}
 	return
 }

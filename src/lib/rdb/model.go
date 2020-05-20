@@ -11,6 +11,16 @@ import (
 //  定数
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//DriverType DBのドライバ識別子
+type DriverType string
+
+const (
+	//DriverTypePostgres postgres
+	DriverTypePostgres DriverType = "postgres"
+	//DriverTypeSQLite3 SQLite
+	DriverTypeSQLite3 DriverType = "sqlite3"
+)
+
 //ItemKeyLine 項目キー（LINE）
 type ItemKeyLine string
 
@@ -176,6 +186,26 @@ func (conf ConfigSlack) ServiceConfig() {}
 //  関数
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//IdentifyDriverType DBのタイプを取得
+func IdentifyDriverType(db *sql.DB) DriverType {
+	driverName := reflect.ValueOf(db.Driver()).Type().String()
+	if driverName == "*sqlite3.SQLiteDriver" {
+		return DriverTypeSQLite3
+	} else {
+		return DriverTypePostgres
+	}
+}
+
+//JudgeDBTypeByDate 日付を渡してどちらのDBを見るか判定する
+func JudgeDBTypeByDate(date time.Time) DriverType {
+	today := time.Now()
+	if (date.Year() == today.Year() && today.YearDay()-date.YearDay() <= 1) || date.IsZero() {
+		return DriverTypePostgres
+	} else {
+		return DriverTypeSQLite3
+	}
+}
+
 //SearchSpotinfoSingle 1件だけ取得
 func SearchSpotinfoSingle(db *sql.DB, option SearchOptions) (Spotinfo, error) {
 	qry := "SELECT time, trim(area), trim(spot), trim(count) FROM spotinfo "
@@ -196,11 +226,10 @@ func SearchSpotinfo(db *sql.DB, option SearchOptions) []Spotinfo {
 	}
 	defer rows.Close()
 
-	driverName := reflect.ValueOf(db.Driver()).Type().String()
 	var es []Spotinfo
 	for rows.Next() {
 		var e Spotinfo
-		if driverName == "*sqlite3.SQLiteDriver" {
+		if IdentifyDriverType(db) == DriverTypeSQLite3 {
 			//SQLiteは日付型がないので特殊処理
 			var timestr string
 			err := rows.Scan(&timestr, &e.Area, &e.Spot, &e.Count)
@@ -284,9 +313,8 @@ func SearchCountsByDay(psql *sql.DB, area, spot, day string) ([]Spotinfo, error)
 		date = time.Time{}
 	}
 
-	today := time.Now()
 	//どちらのDBを見るか
-	if date.Year() == today.Year() && today.YearDay()-date.YearDay() <= 1 {
+	if JudgeDBTypeByDate(date) == DriverTypePostgres {
 		//今日か昨日ならPostgres
 		if date.IsZero() {
 			//日付未指定なら最新の1件のみ
@@ -304,7 +332,7 @@ func SearchCountsByDay(psql *sql.DB, area, spot, day string) ([]Spotinfo, error)
 		}
 	} else {
 		//昨日より過去ならSQLite
-		db, err := GetConnectionSQLite(date)
+		db, err := GetConnectionSQLite(date, false)
 		if err != nil {
 			return spotinfos, err
 		}
