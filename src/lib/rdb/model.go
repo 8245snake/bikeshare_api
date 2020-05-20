@@ -523,9 +523,9 @@ func GetAllUsers(db *sql.DB) ([]User, error) {
 			case LineFavorite:
 				Favorites = append(Favorites, val)
 			case LineHistory:
-				Histories = append(Favorites, val)
+				Histories = append(Histories, val)
 			case LineNotify:
-				Notifies = append(Favorites, val)
+				Notifies = append(Notifies, val)
 			}
 		}
 		user.Favorites = Favorites
