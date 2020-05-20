@@ -125,3 +125,14 @@ type JGraphResponse struct {
 	URL    string  `json:"url"`
 	Item   JPlaces `json:"item"`
 }
+
+//JUsers ユーザ情報
+type JUsers struct {
+	Users []struct {
+		LineID    string   `json:"line_id"`
+		SlackID   string   `json:"slack_id"`
+		Favorites []string `json:"favorites"`
+		Notifies  []string `json:"notifies"`
+		Histories []string `json:"histories"`
+	} `json:"users"`
+}
