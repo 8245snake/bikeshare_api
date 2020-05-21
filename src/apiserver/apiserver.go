@@ -290,6 +290,7 @@ func main() {
 		rest.Get("/private/users", GetUser),
 		rest.Post("/private/counts", SetSpotinfo),
 		rest.Post("/private/places", SetSpotMaster),
+		rest.Post("/private/user", UpdateUser),
 	)
 	if err != nil {
 		log.Fatal(err)

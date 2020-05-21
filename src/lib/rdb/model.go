@@ -536,3 +536,90 @@ func GetAllUsers(db *sql.DB) ([]User, error) {
 
 	return rtnUsers, nil
 }
+
+//UpsertUser ユーザがあればUpdate無ければInsert
+func UpsertUser(db *sql.DB, user *User) (err error) {
+	//トランザクション開始
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	var qry string
+	//user削除
+	if user.LineID != "" {
+		qry = fmt.Sprintf(`delete from public.user where line_id = '%s'`, user.LineID)
+	} else if user.SlackID != "" {
+		qry = fmt.Sprintf(`delete from public.user where slack_id = '%s'`, user.SlackID)
+	} else {
+		tx.Rollback()
+		return fmt.Errorf("[ERROR]UpsertUser IDが不明です")
+	}
+	_, err = tx.Query(qry)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	//userインサート
+	qry = fmt.Sprintf(`insert into public.user(line_id, slack_id) values('%s','%s')`, user.LineID, user.SlackID)
+	_, err = tx.Query(qry)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	//line設定削除
+	qry = "delete from public.line where id = $1"
+	stmt, err := db.Prepare(qry)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	_, err = stmt.Query(user.LineID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	qry = "insert into public.line(id,key,value,seq) values "
+	template := "('%s','%s','%s','%d')"
+	var values string
+	values = ""
+	for i, fav := range user.Favorites {
+		if i != 0 {
+			values += ","
+		}
+		values += fmt.Sprintf(template, user.LineID, LineFavorite, fav, i)
+	}
+	_, err = db.Exec(qry + values)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	values = ""
+	for i, his := range user.Histories {
+		if i != 0 {
+			values += ","
+		}
+		values += fmt.Sprintf(template, user.LineID, LineHistory, his, i)
+	}
+	_, err = db.Exec(qry + values)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	values = ""
+	for i, nitice := range user.Notifies {
+		if i != 0 {
+			values += ","
+		}
+		values += fmt.Sprintf(template, user.LineID, LineNotify, nitice, i)
+	}
+	_, err = db.Exec(qry + values)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
