@@ -513,9 +513,9 @@ func GetAllUsers(db *sql.DB) ([]User, error) {
 		var key string
 		var val string
 		var seq int
-		var Favorites []string
-		var Histories []string
-		var Notifies []string
+		var Favorites []string = []string{}
+		var Histories []string = []string{}
+		var Notifies []string = []string{}
 		for rows.Next() {
 			err := rows.Scan(&key, &val, &seq)
 			if err != nil {
