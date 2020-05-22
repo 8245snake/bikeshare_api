@@ -591,10 +591,12 @@ func UpsertUser(db *sql.DB, user *User) (err error) {
 		}
 		values += fmt.Sprintf(template, user.LineID, LineFavorite, fav, i)
 	}
-	_, err = db.Exec(qry + values)
-	if err != nil {
-		tx.Rollback()
-		return err
+	if len(user.Favorites) > 0 {
+		_, err = db.Exec(qry + values)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	values = ""
@@ -604,10 +606,12 @@ func UpsertUser(db *sql.DB, user *User) (err error) {
 		}
 		values += fmt.Sprintf(template, user.LineID, LineHistory, his, i)
 	}
-	_, err = db.Exec(qry + values)
-	if err != nil {
-		tx.Rollback()
-		return err
+	if len(user.Histories) > 0 {
+		_, err = db.Exec(qry + values)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	values = ""
@@ -617,10 +621,12 @@ func UpsertUser(db *sql.DB, user *User) (err error) {
 		}
 		values += fmt.Sprintf(template, user.LineID, LineNotify, nitice, i)
 	}
-	_, err = db.Exec(qry + values)
-	if err != nil {
-		tx.Rollback()
-		return err
+	if len(user.Notifies) > 0 {
+		_, err = db.Exec(qry + values)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	return tx.Commit()
