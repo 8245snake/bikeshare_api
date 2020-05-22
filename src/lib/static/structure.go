@@ -128,13 +128,16 @@ type JGraphResponse struct {
 
 //JUsers ユーザ情報
 type JUsers struct {
-	Users []struct {
-		LineID    string   `json:"line_id"`
-		SlackID   string   `json:"slack_id"`
-		Favorites []string `json:"favorites"`
-		Notifies  []string `json:"notifies"`
-		Histories []string `json:"histories"`
-	} `json:"users"`
+	Users []JUser `json:"users"`
+}
+
+//JUser ユーザ情報
+type JUser struct {
+	LineID    string   `json:"line_id"`
+	SlackID   string   `json:"slack_id"`
+	Favorites []string `json:"favorites"`
+	Notifies  []string `json:"notifies"`
+	Histories []string `json:"histories"`
 }
 
 //JServiceStatus システム稼働状況
