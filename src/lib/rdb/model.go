@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"reflect"
 	"time"
+
+	"github.com/8245snake/bikeshare_api/src/lib/static"
 )
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -622,4 +624,19 @@ func UpsertUser(db *sql.DB, user *User) (err error) {
 	}
 
 	return tx.Commit()
+}
+
+//CheckScrapingStatus スクレイピングが正常に行われているかチェック
+func CheckScrapingStatus(db *sql.DB) error {
+	qry := "select count(*) from spotinfo"
+	row := db.QueryRow(qry)
+	var count int
+	err := row.Scan(&count)
+	if err != nil {
+		return err
+	}
+	if count < 1000 {
+		return fmt.Errorf("%v", static.StatusScrapingError)
+	}
+	return nil
 }

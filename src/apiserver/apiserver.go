@@ -217,6 +217,39 @@ func GetDistances(w rest.ResponseWriter, r *rest.Request) {
 	w.WriteJson(jBody)
 }
 
+//CheckStatus システム稼働状況を返す
+func CheckStatus(w rest.ResponseWriter, r *rest.Request) {
+	var status static.JServiceStatus
+	var allOK bool
+	switch 1 {
+	default:
+		allOK = false
+		//DB接続確認
+		err := Db.Ping()
+		if err != nil {
+			status.Connection = static.StatusMessage(err.Error())
+			break
+		} else {
+			status.Connection = static.StatusOK
+		}
+		err = rdb.CheckScrapingStatus(Db)
+		if err != nil {
+			status.Scraping = static.StatusMessage(err.Error())
+			break
+		} else {
+			status.Scraping = static.StatusOK
+		}
+		allOK = true
+	}
+	if allOK {
+		status.Status = static.StatusOK
+	} else {
+		status.Status = static.StatusNG
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteJson(status)
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  その他関数
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -286,6 +319,7 @@ func main() {
 		rest.Get("/places", GetPlaces),
 		rest.Get("/all_places", GetAllPlaces),
 		rest.Get("/distances", GetDistances),
+		rest.Get("/status", CheckStatus),
 		rest.Get("/private/config", GetConfig),
 		rest.Get("/private/users", GetUser),
 		rest.Post("/private/counts", SetSpotinfo),

@@ -136,3 +136,10 @@ type JUsers struct {
 		Histories []string `json:"histories"`
 	} `json:"users"`
 }
+
+//JServiceStatus システム稼働状況
+type JServiceStatus struct {
+	Status     StatusMessage `json:"status"`
+	Connection StatusMessage `json:"connection"`
+	Scraping   StatusMessage `json:"scraping"`
+}
