@@ -102,15 +102,6 @@ type ServiceConfig interface {
 	ServiceConfig()
 }
 
-//User ユーザ
-type User struct {
-	LineID    string   `json:"line_id"`
-	SlackID   string   `json:"slack_id"`
-	Favorites []string `json:"favorites"`
-	Notifies  []string `json:"notifies"`
-	Histories []string `json:"histories"`
-}
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  レシーバ
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -476,8 +467,8 @@ func Delete(db *sql.DB, table string, option SearchOptions) (int64, error) {
 }
 
 //GetAllUsers ユーザー設定をすべて取得
-func GetAllUsers(db *sql.DB) ([]User, error) {
-	var users []User
+func GetAllUsers(db *sql.DB) ([]static.JUser, error) {
+	var users []static.JUser
 	qry := `select line_id,slack_id from public.user`
 	rows, err := db.Query(qry)
 	if err != nil {
@@ -487,7 +478,7 @@ func GetAllUsers(db *sql.DB) ([]User, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var s User
+		var s static.JUser
 		err := rows.Scan(&s.LineID, &s.SlackID)
 		if err != nil {
 			continue
@@ -495,7 +486,7 @@ func GetAllUsers(db *sql.DB) ([]User, error) {
 		users = append(users, s)
 	}
 
-	var rtnUsers []User
+	var rtnUsers []static.JUser
 	for _, user := range users {
 		qry = `select key,value,seq from line where id = $1 order by id,key,seq`
 		stmt, err := db.Prepare(qry)
@@ -540,7 +531,7 @@ func GetAllUsers(db *sql.DB) ([]User, error) {
 }
 
 //UpsertUser ユーザがあればUpdate無ければInsert
-func UpsertUser(db *sql.DB, user *User) (err error) {
+func UpsertUser(db *sql.DB, user *static.JUser) (err error) {
 	//トランザクション開始
 	tx, err := db.Begin()
 	if err != nil {

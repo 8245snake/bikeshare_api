@@ -143,13 +143,10 @@ func GetUser(w rest.ResponseWriter, r *rest.Request) {
 		rest.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	type Users struct {
-		Users []rdb.User `json:"users"`
-	}
 
 	//返却
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteJson(Users{users})
+	w.WriteJson(static.JUsers{Users: users})
 }
 
 //UpdateUser ユーザー設定を更新する
@@ -158,7 +155,7 @@ func UpdateUser(w rest.ResponseWriter, r *rest.Request) {
 		return
 	}
 
-	body := rdb.User{}
+	body := static.JUser{}
 	if err := r.DecodeJsonPayload(&body); err != nil {
 		rest.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -175,11 +172,8 @@ func UpdateUser(w rest.ResponseWriter, r *rest.Request) {
 		rest.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	type Users struct {
-		Users []rdb.User `json:"users"`
-	}
 
 	//返却
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteJson(Users{users})
+	w.WriteJson(static.JUsers{Users: users})
 }

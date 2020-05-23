@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/8245snake/bikeshare_api/src/lib/filer"
@@ -36,11 +37,26 @@ var Db *sql.DB
 //MasterSave 駐輪場情報構造体のキャッシュ
 var MasterSave []rdb.Spotmaster
 
-//JsonTimeLayout 時刻フォーマット
-const JsonTimeLayout = "2006/01/02 15:04"
+const (
+	//JsonTimeLayout 時刻フォーマット
+	JsonTimeLayout = "2006/01/02 15:04"
+	//ini_section セクション
+	ini_section = "API"
+)
 
-//ini_section セクション
-const ini_section = "API"
+//OrderByType ソート順指定用
+type OrderByType string
+
+const (
+	//OrderByCountAsc 台数の昇順
+	OrderByCountAsc OrderByType = "counta"
+	//OrderByCountDesc 台数の降順
+	OrderByCountDesc OrderByType = "countd"
+	//OrderByAreaSpotAsc 駐輪場コードの昇順
+	OrderByAreaSpotAsc OrderByType = "areaspota"
+	//OrderByAreaSpotDesc 駐輪場コードの昇順
+	OrderByAreaSpotDesc OrderByType = "areaspotd"
+)
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  エンドポイント関数
@@ -113,11 +129,52 @@ func GetPlaces(w rest.ResponseWriter, r *rest.Request) {
 	spot := params.Get("spot")
 	query := params.Get("q")
 	addwhere := ""
+	//自由検索
 	if query != "" {
 		addwhere = fmt.Sprintf(" position( '%s' in trim(area) || '-' || trim(spot) || ',' || name || station ) > 0", query)
 	}
-	option := rdb.SearchOptions{Area: area, Spot: spot,
-		AddWhere: addwhere}
+	//スポット指定（自由検索より優先される）
+	places := params.Get("places")
+	if places != "" {
+		arr := strings.Split(places, ",")
+		if len(arr) > 0 {
+			tmpArr := []string{}
+			for _, str := range arr {
+				tmpArr = append(tmpArr, "'"+str+"'")
+			}
+			addwhere = "(trim(area) || '-' || trim(spot)) in (" + strings.Join(tmpArr, ",") + ")"
+		}
+	}
+	//ソート順
+	sort := params.Get("sort")
+	var orderBy string
+	switch OrderByType(sort) {
+	case OrderByAreaSpotAsc:
+		orderBy = "area,spot"
+	case OrderByAreaSpotDesc:
+		orderBy = "area desc,spot desc"
+	case OrderByCountAsc:
+		orderBy = "to_number(count, '999') asc"
+	case OrderByCountDesc:
+		orderBy = "to_number(count, '999') desc"
+	}
+	//リミット
+	limitStr := params.Get("limit")
+	var limit int
+	if limitStr != "" {
+		if val, err := strconv.Atoi(limitStr); err == nil {
+			limit = val
+		}
+	}
+	//検索条件セット
+	option := rdb.SearchOptions{
+		Area:     area,
+		Spot:     spot,
+		AddWhere: addwhere,
+		OrderBy:  orderBy,
+		Limit:    limit,
+	}
+	//検索
 	arr, err := rdb.SearchCurrentFull(Db, option)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
