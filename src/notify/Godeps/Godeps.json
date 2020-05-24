@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/8245snake/work/src/importer",
+	"ImportPath": "github.com/8245snake/work/src/notify",
 	"GoVersion": "go1.13",
 	"GodepVersion": "v80",
 	"Deps": [

@@ -84,6 +84,26 @@ services:
       pub-network:
         ipv4_address: 192.168.10.155
 
+  notify:
+    image: go-build
+    container_name: "notify"
+    environment:
+      - TZ=Asia/Tokyo
+      - BINARY_NAMES=notify
+      - API_CERT=${API_CERT}
+    volumes:
+      - ./app/bin:/usr/bikeshare_api/app/bin
+      - ./data:/usr/bikeshare_api/data
+      - ./log:/usr/bikeshare_api/log
+      - ./conf:/usr/bikeshare_api/conf
+      - ./resource:/usr/bikeshare_api/resource
+    extra_hosts: 
+      - "hanetwi.ddns.net:192.168.10.153"
+      - "dbserver:192.168.10.151"
+    networks:
+      pub-network:
+        ipv4_address: 192.168.10.174
+
 networks:
   pub-network:
     external: true
