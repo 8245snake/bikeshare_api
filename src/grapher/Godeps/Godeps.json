@@ -5,19 +5,19 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/filer",
-			"Rev": "d907a6815e83aea2db85363bc9e143affd6e6f62"
+			"Rev": "a92a37d36b6304da3166c12e7066c176e3a317de"
 		},
 		{
 			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/logger",
-			"Rev": "d907a6815e83aea2db85363bc9e143affd6e6f62"
+			"Rev": "a92a37d36b6304da3166c12e7066c176e3a317de"
 		},
 		{
 			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/rdb",
-			"Rev": "d907a6815e83aea2db85363bc9e143affd6e6f62"
+			"Rev": "a92a37d36b6304da3166c12e7066c176e3a317de"
 		},
 		{
 			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/static",
-			"Rev": "d907a6815e83aea2db85363bc9e143affd6e6f62"
+			"Rev": "a92a37d36b6304da3166c12e7066c176e3a317de"
 		},
 		{
 			"ImportPath": "github.com/ant0ine/go-json-rest/rest",
