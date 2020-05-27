@@ -47,6 +47,7 @@ type GraphConfig struct {
 	MarginBottom float64
 	DrawTitle    bool
 	UploadImgur  bool
+	EarlyReturn  bool
 }
 
 //LoadGraphConfig リクエストを解析し設定を取得する
@@ -105,13 +106,9 @@ func LoadGraphConfig(params *url.Values) (conf GraphConfig, err error) {
 		}
 	}
 	//フラグ設定
-	if title := params.Get("title"); title == "yes" {
-		conf.DrawTitle = true
-	}
-
-	if imgur := params.Get("imgur"); imgur == "yes" {
-		conf.UploadImgur = true
-	}
+	conf.DrawTitle = (params.Get("title") == "yes")
+	conf.UploadImgur = (params.Get("imgur") == "yes")
+	conf.EarlyReturn = (params.Get("early") == "yes")
 
 	return
 }
@@ -169,8 +166,15 @@ func GetGraph(w rest.ResponseWriter, r *rest.Request) {
 		link = UploadImgur(path)
 		os.Remove(path)
 	} else {
-		//ローカルのファイルを見せる（非同期）
-		go drawGraphImage(&conf, fileName, title)
+		//ローカルのファイルを見せる
+		if conf.EarlyReturn {
+			//非同期
+			go drawGraphImage(&conf, fileName, title)
+		} else {
+			//同期
+			drawGraphImage(&conf, fileName, title)
+		}
+
 		link = "https://hanetwi.ddns.net/bikeshare/graph/img/" + fileName
 	}
 
