@@ -104,6 +104,28 @@ services:
       pub-network:
         ipv4_address: 192.168.10.174
 
+  maintenance:
+    image: go-build
+    container_name: "maintenance"
+    environment:
+      - TZ=Asia/Tokyo
+      - BINARY_NAMES=notify
+      - API_CERT=${API_CERT}
+    volumes:
+      - ./app/bin:/usr/bikeshare_api/app/bin
+      - ./app/maintenance.sh:/usr/bikeshare_api/app/maintenance.sh
+      - ./data:/usr/bikeshare_api/data
+      - ./log:/usr/bikeshare_api/log
+      - ./conf:/usr/bikeshare_api/conf
+      - ./resource:/usr/bikeshare_api/resource
+    extra_hosts: 
+      - "hanetwi.ddns.net:192.168.10.153"
+      - "dbserver:192.168.10.151"
+    networks:
+      pub-network:
+        ipv4_address: 192.168.10.175
+    command: sh /usr/bikeshare_api/app/maintenance.sh
+
 networks:
   pub-network:
     external: true
