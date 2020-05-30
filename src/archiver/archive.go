@@ -53,6 +53,7 @@ func RunArchive() {
 	if err != nil {
 		return
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var value string
@@ -87,6 +88,8 @@ func insert(db *sql.DB, targetdate time.Time) error {
 	if err != nil {
 		return err
 	}
+	defer rows.Close()
+
 	//SQLiteに接続
 	sqlite, err := rdb.GetConnectionSQLite(targetdate, true)
 	if err != nil {
@@ -114,6 +117,8 @@ func insert(db *sql.DB, targetdate time.Time) error {
 			rowAffected += result
 			rowTried += int64(len(rows_sqlite))
 			rows_sqlite = []rdb.Spotinfo{}
+			//CPU負荷がすごいので休ませる
+			time.Sleep(10 * time.Second)
 		}
 	}
 	//インサート
@@ -125,6 +130,8 @@ func insert(db *sql.DB, targetdate time.Time) error {
 			rowAffected += result
 			rowTried += int64(len(rows_sqlite))
 		}
+		//CPU負荷がすごいので休ませる
+		time.Sleep(10 * time.Second)
 	}
 
 	logger.Debugf("%d件のInsertを試行しました", rowTried)
