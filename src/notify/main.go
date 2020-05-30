@@ -3,17 +3,24 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/8245snake/bikeshare_api/src/lib/filer"
 	"github.com/8245snake/bikeshare_api/src/lib/rdb"
 )
 
-var client *http.Client = &http.Client{}
+var (
+	//client HTTPクライアント
+	client *http.Client = &http.Client{}
+
+	endpoint string
+)
 
 //SendRequest リクエスト送信
 func SendRequest(userID string) {
-	client.Get("https://abiding-idea-241002.an.r.appspot.com/notify?user=" + userID)
+	URL := strings.Replace(endpoint, "${USER}", userID, -1)
+	client.Get(URL)
 }
 
 func init() {
@@ -22,6 +29,11 @@ func init() {
 	if err != nil {
 		return
 	}
+	endpoint = filer.GetIniData("NOTIFY", "REQUEST", "")
+	if endpoint == "" {
+		panic("通知リクエストURLが設定されていません")
+	}
+	fmt.Printf("endpoint=%s\n", endpoint)
 }
 
 func main() {
