@@ -75,7 +75,6 @@ services:
       - API_CERT=${API_CERT}
       - LINE_CLIENT_ID=${LINE_CLIENT_ID}
       - LINE_CLIENT_SECRET=${LINE_CLIENT_SECRET}
-      - PORT=5000
     volumes:
       - ./app/bin:/usr/bikeshare_api/app/bin
       - ./log:/usr/bikeshare_api/log
@@ -84,6 +83,8 @@ services:
     extra_hosts: 
       - "hanetwi.ddns.net:192.168.10.153"
       - "dbserver:192.168.10.151"
+    ports:
+      - "5000:5050"
     networks:
       pub-network:
         ipv4_address: 192.168.10.154
