@@ -1,0 +1,20 @@
+{
+	"ImportPath": "github.com/8245snake/bikeshare_api/src/line",
+	"GoVersion": "go1.13",
+	"GodepVersion": "v80",
+	"Deps": [
+		{
+			"ImportPath": "github.com/8245snake/bikeshare-client",
+			"Rev": "d7e8e5688529cd82be0f73336e508dcc5370ad25"
+		},
+		{
+			"ImportPath": "github.com/8245snake/bikeshare_api/src/lib/static",
+			"Rev": "dd0e492f7f1c27fa9ff31905f502301035283dce"
+		},
+		{
+			"ImportPath": "github.com/line/line-bot-sdk-go/linebot",
+			"Comment": "v7.4.0-1-g844ef1d",
+			"Rev": "844ef1d74b201fea98cdb7c5dcbb60c47a934c28"
+		}
+	]
+}
