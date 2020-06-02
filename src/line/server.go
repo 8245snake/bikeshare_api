@@ -192,6 +192,9 @@ func init() {
 	if os.Getenv("MODE") == "DEBUG" {
 		//デバッグ用
 		BikeshareAPI.SetEndpoint("http://localhost:5001/")
+	} else if os.Getenv("MODE") == "LOCAL" {
+		//APIサーバと同じサーバにあるとき
+		BikeshareAPI.SetEndpoint("http://apiserver:5001/")
 	}
 
 	//ユーザー設定を取得
