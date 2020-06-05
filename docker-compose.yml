@@ -72,7 +72,6 @@ services:
     environment:
       - TZ=Asia/Tokyo
       - BINARY_NAMES=line
-      - MODE=LOCAL
       - API_CERT=${API_CERT}
       - LINE_CLIENT_ID=${LINE_CLIENT_ID}
       - LINE_CLIENT_SECRET=${LINE_CLIENT_SECRET}
@@ -85,7 +84,7 @@ services:
       - "hanetwi.ddns.net:192.168.10.153"
       - "dbserver:192.168.10.151"
     ports:
-      - "5000:5050"
+      - "5050:5050"
     networks:
       pub-network:
         ipv4_address: 192.168.10.154
