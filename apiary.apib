@@ -1,0 +1,133 @@
+FORMAT: 1A
+
+# Docomo Bikeshare API
+
+## Docomo Bikeshare API について
+
+Docomoシェアサイクルの台数を返す非公式のAPIです。
+
+### エンドポイント
+
+https://hanetwi.ddns.net/bikeshare/api/v1/
+
+### API 共通のエラー形式
+
+#### URLが不正の場合
+404 NOT FOUND を返す。ボディ部は以下の形式とする。
+
+```
+{
+  "reason": "存在しないページです", 
+  "result": "failed"
+}
+```
+
+## スポット検索 [/places?area={area}&spot={spot}&q={q}]
+
+### スポット情報の取得 [GET]
+
+#### 概要
+
+* サイクルスポットを検索する
+* スポット名や駅名で検索して一意キーを知るために利用する
+* 最新の自転車台数も取得できる
+* パラメータを全て省略することはできない
+
++ Parameters
+
+    + area: D1 (string, optional) - エリアコード
+    + spot: 10 (string, optional) - スポットコード
+    + q: `四谷` (string, optional) - 検索ワード
+
++ Response 200 (application/json)
+
+    * リクエストが正常に処理された場合。
+
+    + Attributes
+        + num: 11 (number, required) - 検索結果の件数
+        + items(array[Item],fixed-type) - スポットのリスト
+
+## 台数検索 [/counts?area={area}&spot={spot}&day={day}]
+
+### 自転車台数の取得 [GET]
+
+#### 概要
+
+* 1つのサイクルスポットについて自転車の台数を検索する。
+* 調べたいサイクルスポットの一意キーが分かっている場合に使用できる。
+
++ Parameters
+
+    + area: D1 (string, required) - エリアコード
+    + spot: 10 (string, required) - スポットコード
+    + day: 20191224 (string, optional) - 検索の対象とする日付（yyyymmdd）。省略時は最新の台数のみ返す。
+
++ Response 200 (application/json)
+
+    * リクエストが正常に処理された場合。
+
+    + Attributes
+        + area: `D1` (string, required) - エリアコード
+        + spot: `10` (string, required) - スポットコード
+        + description: `都営新宿線「曙橋駅」から150m。東京メトロ丸ノ内線「四谷三丁目駅」から580m。東京メトロ南北線「四ツ谷駅」から800m。` (string) - スポットについての説明
+        + lat: `35.691888` (string, required) - 緯度
+        + lon: `139.724365` (string, required) - 経度
+        + name: `曙橋駐輪場` (string, required) - サイクルスポットの名前
+        + counts(array[Counts],fixed-type) - 台数のリスト
+
+## 近いスポット検索 [/distances?lat={lat}&lon={lon}]
+
+### 近いスポット情報の取得 [GET]
+
+#### 概要
+
+* 経度と緯度を渡して近いスポットを10件取得する
+* スポット名や駅名で検索して一意キーを知るために利用する
+* 最新の自転車台数も取得できる
+
++ Parameters
+
+    + lat: `35.691888` (string, required) - 緯度
+    + lon: `139.724365` (string, required) - 経度
+
++ Response 200 (application/json)
+
+    * リクエストが正常に処理された場合。
+
+    + Attributes
+        + num: 11 (number, required) - 検索結果の件数
+        + items(array[Item2],fixed-type) - スポットのリスト
+
+
+# Data Structures
+
+## Item (object)
++ area: `D1` (string, required) - エリアコード
++ spot: `10` (string, required) - スポットコード
++ description: `都営新宿線「曙橋駅」から150m。東京メトロ丸ノ内線「四谷三丁目駅」から580m。東京メトロ南北線「四ツ谷駅」から800m。` (string) - スポットについての説明
++ lat: `35.691888` (string, required) - 緯度
++ lon: `139.724365` (string, required) - 経度
++ name: `曙橋駐輪場` (string, required) - サイクルスポットの名前
++ recent(Recent,fixed-type) - 最新の台数
+
+## Item2 (object)
++ area: `D1` (string, required) - エリアコード
++ spot: `10` (string, required) - スポットコード
++ distance: `120 m` (string) - スポットまでの距離（メートル）
++ lat: `35.691888` (string, required) - 緯度
++ lon: `139.724365` (string, required) - 経度
++ name: `曙橋駐輪場` (string, required) - サイクルスポットの名前
++ recent(Recent,fixed-type) - 最新の台数
+
+## Counts (object)
++ count: `12` (string, required) - 台数
++ datetime: `2019/12/29 22:38` (string, required) - フォーマットされた日時
++ day: `29` (string, required) - 日
++ hour: `22` (string, required) - 時
++ minute: `38` (string, required) - 分
++ month: `12` (string, required) - 月
++ year: `2019` (string, required) - 年
+
+## Recent (object)
++ count: `6` (string, required) - 台数
++ datetime: `2019/12/24 22:38` (string, required) - フォーマットされた日時

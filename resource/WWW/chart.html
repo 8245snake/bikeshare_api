@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="jp">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios@0.18.0/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/locale/ja.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <title>Document</title>
+</head>
+
+
+<body>
+    <h1>24時間グラフ</h1>
+
+    <div id="graph">
+        <select name="category" @change="change">
+            <option v-for="category in categories" :value="category.id">
+                {{ category.name }}
+            </option>
+        </select>
+        <select name="places">
+            <option v-for="place in places" :value="place.code">
+                {{ place.name }}
+            </option>
+        </select>
+        <button v-on:click="draw">Run</button>
+    </div>
+    <input name="datepicker" id="myInput" type="text" />
+    <canvas id="myLineChart"></canvas>
+
+    <script>
+        const config = {
+            dateFormat: "Y/m/d",
+            defaultDate: 'today',
+        };
+        let fp = flatpickr("#myInput", config);
+        let chart = init_chart();
+        var colors = ['red', 'blue', 'green', 'fuchsia', 'navy', 'lime', 'yellow'];
+
+        var graph = new Vue({
+            el: '#graph',
+            data: {
+                name: [],
+                times: [],
+                counts: [],
+                //最大インデックスを保持する
+                index: -1,
+                //コンボボックス
+                categories: [{
+                        id: 'A',
+                        name: '千代田'
+                    },
+                    {
+                        id: 'B',
+                        name: '中央'
+                    },
+                    {
+                        id: 'C',
+                        name: '港'
+                    },
+                    {
+                        id: 'D',
+                        name: '新宿'
+                    },
+                    {
+                        id: 'E',
+                        name: '文京'
+                    },
+                    {
+                        id: 'H',
+                        name: '江東'
+                    },
+                    {
+                        id: 'I',
+                        name: '品川'
+                    },
+                    {
+                        id: 'J',
+                        name: '目黒'
+                    },
+                    {
+                        id: 'K',
+                        name: '大田'
+                    },
+                    {
+                        id: 'M',
+                        name: '渋谷'
+                    }
+                ],
+                //APIから取得した全スポット情報を格納する
+                all_spots: [],
+                //現在表示中のスポット
+                places: []
+            },
+            methods: {
+                draw: function(e) {
+                    day = fp.formatDate(fp.selectedDates[0], 'Ymd');
+                    opt = get_selected();
+                    get_api_counts(this, opt['area'], opt['spot'], day);
+                },
+                change: function(e) {
+                    area_code = e.target.value;
+                    l = [];
+                    this.all_spots.forEach(function(item) {
+                        if (item.code.slice(0, 1) == area_code) {
+                            l.push(item);
+                        }
+                    });
+                    this.places = l;
+                }
+            },
+            //変数が書き換わったときのコールバック処理
+            watch: {
+                index: function(newVal, oldVal) {
+                    counts = normalize_counts(this.times[this.index], this.counts[this.index]);
+                    label = this.name[this.index] + '（' + this.times[this.index][0].slice(0, 'yyyy/mm/dd'.length) + '）'
+                    add_chart(label, counts, colors[this.index])
+                },
+                all_spots: function(newVal, oldVal) {
+                    this.places = this.all_spots;
+                }
+            },
+            mounted: function() {
+                get_all_places(this);
+            }
+
+        });
+
+        //コンボボックスで選択した項目を{area : 'D1', spot : '10'}の形式で返す
+        function get_selected() {
+            //'D1-10'の形式で取得
+            value = document.getElementsByName('places')[0].value;
+            arr = value.split('-');
+            //オブジェクトを返す
+            return {
+                area: arr[0],
+                spot: arr[1]
+            }
+        }
+
+        //APIから台数情報を取得してメンバーに格納
+        function get_all_places(context) {
+            url = 'https://hanetwi.ddns.net/bikeshare/api/v1/all_places'
+
+            axios.get(url)
+                .then(
+                    function(response) {
+                        var data = response.data;
+                        var items = data['items'];
+                        result = [];
+                        items.forEach(function(item) {
+                            code = item['area'] + '-' + item['spot'];
+                            result.push({
+                                code: code,
+                                name: '[' + code + '] ' + item['name']
+                            });
+                        });
+                        context.all_spots = result;
+                    }
+                ).catch(
+                    function(err) {
+                        console.log(err);
+                    }
+                )
+
+        }
+
+        //APIから台数情報を取得
+        function get_api_counts(context, area, spot, day) {
+            //ベースURL
+            url = 'https://hanetwi.ddns.net/bikeshare/api/v1/counts?'
+            url += 'area=' + area
+            url += '&spot=' + spot
+            url += '&day=' + day
+
+            axios.get(url)
+                .then(
+                    function(response) {
+                        var data = response.data;
+                        var items = data['counts'];
+                        times = [];
+                        counts = [];
+                        items.forEach(function(item) {
+                            times.push(item['datetime']);
+                            counts.push(parseInt(item['count'], 10));
+                        });
+                        context.times.push(times.reverse());
+                        context.counts.push(counts.reverse());
+                        context.name.push(data['name']);
+                        context.index += 1;
+                    }
+                ).catch(
+                    function(err) {
+                        console.log(err);
+                    }
+                )
+        }
+
+        //指定した日付の１分おきの文字列配列を返す
+        function create_date_array(date) {
+            datetimes = [];
+            time = moment(date + ' 00:00')
+            for (var i = 0; i < 60 * 24; i++) {
+                datetimes.push(time.format("YYYY/MM/DD HH:mm"));
+                time.add(1, "minute");
+            }
+            return datetimes;
+        }
+
+        //グラフ画面を初期化する
+        function init_chart() {
+            var ctx = document.getElementById("myLineChart").getContext('2d');
+            ctx.canvas.height = 280;
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: create_date_array(moment().format('YYYY/MM/DD')),
+                },
+                options: {
+                    title: {
+                        display: true,
+                        text: '自転車の台数'
+                    },
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        yAxes: [{
+                            ticks: {
+                                suggestedMax: 10,
+                                suggestedMin: 0,
+                                stepSize: 1,
+                                beginAtZero: true,
+                                callback: function(value, index, values) {
+                                    return value + '台'
+                                }
+                            }
+                        }],
+                        xAxes: [{
+                            type: 'time',
+                            time: {
+                                parser: "yyyy/mm/dd hh:mm", //<- use 'parser'
+                                unit: 'hour',
+                                unitStepSize: 1,
+                                displayFormats: {
+                                    'hour': 'HH:mm',
+                                }
+                            }
+                        }],
+                    },
+                }
+            });
+        }
+
+        //グラフにデータを追加する
+        function add_chart(label, counts, color) {
+            chart.data.datasets.push({
+                label: label,
+                data: counts,
+                borderColor: color,
+                backgroundColor: "rgba(0,0,0,0)",
+                spanGaps: true,
+            });
+            chart.update();
+        }
+
+        //counts配列を正規化する（欠損値にはnullを入れる）
+        function normalize_counts(datetimes, counts) {
+            norm = create_date_array(datetimes[0].slice(0, 'yyyy/mm/dd'.length));
+            newarr = [];
+            var idx = 0;
+            for (var i = 0; i < norm.length - 1; i++) {
+                if (norm[i] == datetimes[idx]) {
+                    newarr.push(counts[idx]);
+                    idx += 1;
+                } else {
+                    newarr.push(null);
+                }
+            }
+            return newarr;
+        }
+    </script>
+</body>
+
+</html>
